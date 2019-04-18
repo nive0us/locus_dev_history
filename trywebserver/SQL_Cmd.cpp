@@ -99,7 +99,7 @@ string sql_create_card_correspond2  = "number VARCHAR(40) , status TINYINT, `tim
 string sql_create_card_correspond   = sql_create_table + sql_create_card_correspond1 + sql_create_card_correspond2 ;
 
 string sql_create_department_relation1  = "department_relation ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
-string sql_create_department_relation2  = "parent VARCHAR(40), children VARCHAR(40), color VARCHAR(10), isJobTitle TINYINT )";
+string sql_create_department_relation2  = "parent VARCHAR(40), p_id INT UNSIGNED, children VARCHAR(40), c_id INT UNSIGNED, color VARCHAR(10), isJobTitle TINYINT )";
 string sql_create_department_relation   = sql_create_table + sql_create_department_relation1 + sql_create_department_relation2 ;
 
 
@@ -338,7 +338,10 @@ json Call_SQL_func( string func_name, json func_arg )
         if ( func_name == "AddStaff" )
             success = SQL_AddStaff( state, func_arg ) ;
         if ( func_name == "AddDepartment" )
+        {
             success = SQL_AddDepartment( state, func_arg ) ;
+            ret = json_SQL_Return_inserted_id( state, result );
+        }
 
         cout << func_name << endl ;
 
@@ -532,8 +535,10 @@ int SQL_AddStaff( Statement *&state, json func_arg )
 int SQL_AddDepartment( Statement *&state, json func_arg )
 {
 
-    string parent      = func_arg["parent"].get<std::string>() ;
-    string children         = func_arg["children"].get<std::string>() ;
+    string parent       = func_arg["parent"].get<std::string>() ;
+    string p_id         = func_arg["p_id"].get<std::string>() ;
+    string children     = func_arg["children"].get<std::string>() ;
+//    string c_id         = func_arg["c_id"].get<std::string>() ;
     string color        = func_arg["color"].get<std::string>() ;
 //    string exist        = func_arg["exist"].get<std::string>() ;
 
@@ -546,8 +551,9 @@ int SQL_AddDepartment( Statement *&state, json func_arg )
     */
 
     // id, number, tag_id, Name, lastName, firstName, EnglishName, gender, card_id, status, department, jobTitle, type, birthday, photo, note
-
-    string query = string("") + "INSERT INTO department_relation VALUES ( '0','" + parent + "','" + children + "','" +  color + "','" +  "0" + "' );" ;
+    string query0 = "SET @last_id_in_table = (select count(*) from department_relation );" ;
+    SQL_ExecuteUpdate_single( state, query0 ) ;
+    string query = string("") + "INSERT INTO department_relation VALUES ( '0','" + parent + "','" + p_id + "','" + children + "'," + "@last_id_in_table+1" + ",'" + color + "','" +  "0" + "' );" ;
 
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
@@ -815,7 +821,7 @@ json json_SQL_GetStaffs( Statement *&state, ResultSet *&result )
 
 
 
-string Travel_tree( json j_tree, string target, json &ret_json )
+string Travel_tree( json j_tree, string target, json &ret_json ) // traveling by name
 {
 
     for ( int i = 0 ; i < j_tree.size() ; i++ )
@@ -834,7 +840,7 @@ string Travel_tree( json j_tree, string target, json &ret_json )
 //            if ( ret_v != "" )
 //            {
 //                tp["name"] = ret_v ;
-                tp["children"] = children ;
+            tp["children"] = children ;
 
 //            }
             ret_json.push_back(tp);
@@ -843,6 +849,49 @@ string Travel_tree( json j_tree, string target, json &ret_json )
     }
 
 //    // if can't not find key in the master list, return key
+//    cout << "end level:" << target << endl ;
+    cout  << endl ;
+    return "" ;
+
+}
+
+string Travel_tree_by_id( json j_tree, string target, json &ret_json )
+{
+
+    for ( int i = 0 ; i < j_tree.size() ; i++ )
+    {
+        if ( j_tree[i]["p_id"] == target )
+        {
+            json tp ;
+            string c_key = j_tree[i]["c_id"].get<std::string>() ;
+            string p_key = j_tree[i]["p_id"].get<std::string>() ;
+
+            string name = j_tree[i]["children"].get<std::string>() ;
+//            string children = j_tree[i]["children"].get<std::string>() ;
+            string color = j_tree[i]["color"].get<std::string>() ;
+//            cout << key << "/" ;
+            tp["p_id"] = p_key ;
+
+            tp["c_id"] = c_key ;
+            tp["id"]   = c_key ;
+            tp["name"] = name ;
+//            tp["children"] = children ;
+            tp["color"] = color ;
+
+            json children ;
+            string ret_v = Travel_tree_by_id( j_tree, c_key, children ) ;
+//            if ( ret_v != "" )
+//            {
+//                tp["name"] = ret_v ;
+            tp["children"] = children ;
+
+//            }
+            ret_json.push_back(tp);
+
+        }
+    }
+
+//    // if can't not find c_key in the master list, return c_key
 //    cout << "end level:" << target << endl ;
     cout  << endl ;
     return "" ;
@@ -864,14 +913,18 @@ json json_SQL_GetDepartment_relation( Statement *&state, ResultSet *&result )
         while (result->next())
         {
 
-            string parent = result->getString("parent");
+            string parent   = result->getString("parent");
+            string p_id     = result->getString("p_id");
             string children = result->getString("children");
-            string color = result->getString("color");
+            string c_id     = result->getString("c_id");
+            string color    = result->getString("color");
 
 
-            temp["parent"] = parent;
-            temp["children"] = children;
-            temp["color"] = color;
+            temp["parent"]      = parent;
+            temp["p_id"]        = p_id;
+            temp["children"]    = children;
+            temp["c_id"]        = c_id;
+            temp["color"]       = color;
 
 
             tree.push_back(temp);
@@ -885,14 +938,60 @@ json json_SQL_GetDepartment_relation( Statement *&state, ResultSet *&result )
     }
 
     json ary ;
-    Travel_tree( tree, "", ary ) ;
+//    Travel_tree( tree, "", ary ) ;
+    Travel_tree_by_id( tree, "0", ary ) ;
     foo["Values"] = ary ;
     foo["success"] = 1 ;
     return foo ;
 }
 
 
+json json_SQL_Return_inserted_id( Statement *&state, ResultSet *&result )
+{
+    json tree ;
 
+    json foo ;
+    foo["success"] = 0 ;
+    json temp ;
+    string query = "select c_id from department_relation order by id desc limit 0,1;";
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next())
+        {
+
+//            string parent   = result->getString("parent");
+//            string p_id     = result->getString("p_id");
+//            string children = result->getString("children");
+            string c_id     = result->getString("c_id");
+//            string color    = result->getString("color");
+
+            temp["c_id"]        = c_id;
+//            temp["parent"]      = parent;
+//            temp["p_id"]        = p_id;
+//            temp["children"]    = children;
+//
+//            temp["color"]       = color;
+
+            tree = temp ;
+//            tree.push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+//    json ary ;
+//    Travel_tree( tree, "", ary ) ;
+//    Travel_tree_by_id( tree, "0", ary ) ;
+//    foo["Values"] = ary ;
+    foo["Values"] = tree ;
+    foo["success"] = 1 ;
+    return foo ;
+}
 
 
 
