@@ -2385,6 +2385,54 @@ string Get_LastDay_date()
     string val_out = "nothing";
 //    cout << "before :" << val_out << endl ;
     val_out = string(buf);
+    cout << "after :" << val_out  << "<<" << endl ;
+
+    string val_out2 = val_out ; // Today's date
+    //val_out2 = Str2Time_BackDate( val_out ) ; // Today's date -> lastday's Date
+
+    return val_out2 ;
+
+}
+
+string Get_Today_date_hour()
+{
+
+    char buf[128]= {0};
+
+    struct tm* ptm = NULL;
+    time_t t = time(NULL);
+    ptm = localtime(&t);
+    strftime(buf,sizeof(buf),"%Y-%m-%d %H",ptm);
+//    cout<<buf<<endl;
+
+
+    string val_out = "nothing";
+//    cout << "before :" << val_out << endl ;
+    val_out = string(buf);
+//    cout << "after :" << val_out  << "<<" << endl ;
+
+    string val_out2 = val_out ; // Today's date
+    //val_out2 = Str2Time_BackDate( val_out ) ; // Today's date -> lastday's Date
+
+    return val_out2 ;
+
+}
+
+string Get_Today_date_hour_min()
+{
+
+    char buf[128]= {0};
+
+    struct tm* ptm = NULL;
+    time_t t = time(NULL);
+    ptm = localtime(&t);
+    strftime(buf,sizeof(buf),"%Y-%m-%d %H:%M",ptm);
+//    cout<<buf<<endl;
+
+
+    string val_out = "nothing";
+//    cout << "before :" << val_out << endl ;
+    val_out = string(buf);
 //    cout << "after :" << val_out  << "<<" << endl ;
 
     string val_out2 = val_out ; // Today's date
@@ -2400,7 +2448,25 @@ void check_locus_index()
 
     SQL_Update_locus_index(date);
 
-    usleep(0);
+    //usleep(0);
+}
+
+void check_locus_index_hour()
+{
+    string date_hour = Get_Today_date_hour() ;
+
+    SQL_Update_locus_index_hour(date_hour);
+
+    //usleep(0);
+}
+
+void check_locus_index_hour_min()
+{
+    string date_hour = Get_Today_date_hour_min() ;
+
+    SQL_Update_locus_index_hour_min(date_hour);
+
+    //usleep(0);
 }
 
 volatile bool Record2SQL = true ;
@@ -3522,6 +3588,7 @@ return_ok:
                 }
 
                 std::string response_text = j_response.dump();
+                j_response.clear();
                 binch2 = response_text.c_str();
                 bytesSent = send(SOCKET_temp, (const char*)binch2, strlen(binch2), 0);
 
@@ -3806,7 +3873,12 @@ void loc_run2()
 //
 //                //cout << "record count :"<<coordinate_record_count << endl;
                 Location_Point_display(Tag_record_info, coordinate_record_count, Tag_Status_record_info, status_record_count);
-                check_locus_index();
+
+//                check_locus_index();
+                check_locus_index_hour();
+                check_locus_index_hour_min();
+
+
                 usleep(100000);
 
 
@@ -3883,13 +3955,110 @@ void Setting_Server_IP()
 
 
 
+string test_date_part( string date_with_hour ) {
+
+    tm tm_;
+    time_t t_;
+    char buf[128]= {0};
+
+    //strcpy(buf, "2012-01-30");
+    string in = date_with_hour + ":00:00" ;
+//    cout << in << endl ;
+
+
+    strcpy (buf, in.c_str());
+
+    strptime(buf, "%Y-%m-%d %H:00:00", &tm_); //将字符串转换为tm时间
+    tm_.tm_isdst = -1;
+    t_  = mktime(&tm_); //将tm时间转换为秒时间
+    //t_ += 3600;  //秒数加3600
+//    t_ += 3600;
+
+    tm_ = *localtime(&t_);//输出时间
+    strftime(buf, 64, "%Y-%m-%d", &tm_);
+//    cout << buf << endl;
+
+    string val_out = "nothing";
+    val_out = string(buf);
+    cout << "date part :" << val_out << endl ;
+    return val_out ;
+}
+
+string test_time_part ( string date_with_hour ) {
+    tm tm_;
+    time_t t_;
+    char buf[128]= {0};
+
+    //strcpy(buf, "2012-01-30");
+    string in = date_with_hour + ":00:00" ;
+//    cout << in << endl ;
+
+
+    strcpy (buf, in.c_str());
+
+    strptime(buf, "%Y-%m-%d %H:00:00", &tm_); //将字符串转换为tm时间
+    tm_.tm_isdst = -1;
+    t_  = mktime(&tm_); //将tm时间转换为秒时间
+    //t_ += 3600;  //秒数加3600
+//    t_ += 3600;
+
+    tm_ = *localtime(&t_);//输出时间
+    strftime(buf, 64, "%H:%M:%S", &tm_);
+//    cout << buf << endl;
+
+    string val_out = "nothing";
+    val_out = string(buf);
+    cout << "time part :" << val_out << endl ;
+    return val_out ;
+}
+
+string testStr2Time_Hour( string date , string time )
+{
+
+    tm tm_;
+    time_t t_;
+    char buf[128]= {0};
+
+    //strcpy(buf, "2012-01-30");
+    string in = date + time ;
+//    cout << in << endl ;
+
+
+    strcpy (buf, in.c_str());
+
+    strptime(buf, "%Y-%m-%d %H:00:00", &tm_); //将字符串转换为tm时间
+    tm_.tm_isdst = -1;
+    t_  = mktime(&tm_); //将tm时间转换为秒时间
+    //t_ += 3600;  //秒数加3600
+//    t_ += 3600;
+
+    tm_ = *localtime(&t_);//输出时间
+    strftime(buf, 64, "%Y-%m-%d %H", &tm_);
+//    cout << buf << endl;
+
+    string val_out = "nothing";
+//    cout << "before :" << val_out << endl ;
+    val_out = string(buf);
+    cout << "after :" << val_out  << "<<" << endl ;
+
+
+    return val_out ;
+
+}
 
 int main()
 {
 
 
-    Get_LastDay_date() ;
-    debug_mode = false ;
+//    Get_LastDay_date() ;
+//    Get_Today_date_hour();
+    cout << Get_Today_date_hour_min() << endl ;
+//    string datetest = "2012-01-30 21";
+//"2019-03-29", "start_time": "00:30:32" ,
+//    testStr2Time_Hour( "2019-03-29", "00:30:32" ) ;
+//    test_date_part( datetest );
+//    test_time_part( datetest );
+//    debug_mode = false ;
 
     cout << "net inferface" << endl ;
     //Update_net_interface() ;
