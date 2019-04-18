@@ -80,13 +80,37 @@ json json_SQL_GetMap_Groups( Statement *&state, ResultSet *&result );
 json json_SQL_GetTags_info( Statement *&state, ResultSet *&result );
 json json_SQL_GetSingleLocus( Statement *&state, string tag_id, string start_date, string start_time, string end_date, string end_time, ResultSet *&result ) ;
 json json_SQL_GetSingleLocus_combine( Statement *&state, string tag_id, string start_date, string start_time, string end_date, string end_time, ResultSet *&result ) ;
-
+json json_SQL_GetSingleLocus_combine_hour( Statement *&state, string tag_id, string start_date, string start_time, string end_date, string end_time, ResultSet *&result ) ;
+json json_SQL_GetSingleLocus_combine_min( Statement *&state, string tag_id, string start_date, string start_time, string end_date, string end_time, ResultSet *&result ) ;
 
 
 
 void SQL_Update_locus_index( string date );
+void SQL_Update_locus_index_hour( string datetime );
+void SQL_Update_locus_index_hour_min( string datetime ) ;
+
+
 string Str2Time_BackDate( string date );
 string Str2Time_ShiftDate( string date );
+string Str2Time_ShiftHour( string date ) ;
+string Str2Time_Hour( string date , string time );
+string Str2Time_ShiftMin( string date ) ;
+string Str2Time_Min( string date , string time );
+
+string date_part( string date );
+string time_part( string date );
+
+string Only_get_Time( string tmp );
+string Only_get_Date( string tmp );
+
 string SQL_Get_indexOf_locus_index_by_date( string date );
 string SQL_Get_date_by_indexOf_locus_index( string rownum );
+string SQL_Get_indexOf_locus_index_by_hour( string date_hour );
+string SQL_Get_indexOf_locus_index_by_next_hour( string rownum );
+string SQL_Get_indexOf_locus_index_by_min( string date_hour ) ;
+string SQL_Get_indexOf_locus_index_by_next_min( string rownum );
+
+
+
 bool Time_In_Interval( string input, string starting, string ending) ;
+json package2json( string coordinate_x, string coordinate_y, string map_id, string time ) ;
