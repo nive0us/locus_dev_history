@@ -3004,7 +3004,7 @@ void TCP_thread_Safe( SOCKET m_socket )
             /updateFW   : Work, testing.
             /test       : Work, useless ,just practice to send.
             /test2      : Work, do the same thing like /Command, but using the method "Callback" to call function.
-            /sql        : Work, any action about database, still adding the new action.
+            /sql        : Work, any action about database, still adding the new SQL command.
 
 
 
