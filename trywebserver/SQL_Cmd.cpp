@@ -29,21 +29,21 @@ string sql_create_map2      = "map_path VARCHAR(64) )";
 string sql_create_map_info  = sql_create_table + sql_create_map1 + sql_create_map2 ;
 
 
-string sql_create_group1    = "group_info ( group_id SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (group_id), " ;
-string sql_create_group2    = "main_anchor_id VARCHAR(16), mode VARCHAR(8), mode_value VARCHAR(8), fence VARCHAR(8) )";
+string sql_create_group1        = "group_info ( group_id SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (group_id), " ;
+string sql_create_group2        = "main_anchor_id VARCHAR(16), mode VARCHAR(8), mode_value VARCHAR(8), fence VARCHAR(8) )";
 string sql_create_group_info    = sql_create_table + sql_create_group1 + sql_create_group2 ;
 
-string sql_create_anchor1   = "anchor_info ( anchor_id SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (anchor_id), " ;
-string sql_create_anchor2   = "set_x INT UNSIGNED, set_y INT UNSIGNED, anchor_type VARCHAR(16) )";
+string sql_create_anchor1       = "anchor_info ( anchor_id SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (anchor_id), " ;
+string sql_create_anchor2       = "set_x INT UNSIGNED, set_y INT UNSIGNED, anchor_type VARCHAR(16) )";
 string sql_create_anchor_info   = sql_create_table + sql_create_anchor1 + sql_create_anchor2 ;
 
 string sql_create_group_anchor1 = "group_anchors ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), group_id SMALLINT UNSIGNED, " ;
 string sql_create_group_anchor2 = "anchor_id SMALLINT UNSIGNED )";
 string sql_create_group_anchor  = sql_create_table + sql_create_group_anchor1 + sql_create_group_anchor2 ;
 
-string sql_create_map_group1 = "map_groups ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), map_id INT UNSIGNED, " ;
-string sql_create_map_group2 = "group_id SMALLINT UNSIGNED )";
-string sql_create_map_group  = sql_create_table + sql_create_map_group1 + sql_create_map_group2 ;
+string sql_create_map_group1    = "map_groups ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), map_id INT UNSIGNED, " ;
+string sql_create_map_group2    = "group_id SMALLINT UNSIGNED )";
+string sql_create_map_group     = sql_create_table + sql_create_map_group1 + sql_create_map_group2 ;
 
 
 
@@ -63,14 +63,16 @@ string sql_create_locus_combine     = sql_create_table + sql_create_locus1 + sql
 
 
 
-string sql_create_locus_index1    = "locus_index ( `date`date NOT NULL , PRIMARY KEY (date), " ;
-string sql_create_locus_index2    = "id INT UNSIGNED  )";
-string sql_create_locus_index     = sql_create_table + sql_create_locus_index1 + sql_create_locus_index2 ;
+string sql_create_locus_index1  = "locus_index ( `date`date NOT NULL , PRIMARY KEY (date), " ;
+string sql_create_locus_index2  = "index_id INT UNSIGNED  )";
+string sql_create_locus_index   = sql_create_table + sql_create_locus_index1 + sql_create_locus_index2 ;
 
 
 
 
-
+string sql_create_event1    = "event ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), tag_id VARCHAR(16), " ;
+string sql_create_event2    = "status TINYINT, `time`datetime(2) )";
+string sql_create_event     = sql_create_table + sql_create_event1 + sql_create_event2 ;
 
 
 
@@ -87,6 +89,7 @@ bool Construct_sql_cmd()
 
         SQL_ExecuteUpdate( sql_create_database );
 
+
         SQL_ExecuteUpdate( sql_create_map_info ) ;
         SQL_ExecuteUpdate( sql_create_group_info ) ;
         SQL_ExecuteUpdate( sql_create_anchor_info ) ;
@@ -100,6 +103,7 @@ bool Construct_sql_cmd()
         SQL_ExecuteUpdate (sql_create_locus_combine );
 
         SQL_ExecuteUpdate( sql_create_locus_index ) ;
+        SQL_ExecuteUpdate( sql_create_event ) ;
 
         SQL_Close();
     }
@@ -418,6 +422,11 @@ int SQL_AddTag( Statement *&state, string tag_id, string tag_name, string pic_pa
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
+int SQL_AddEvent( Statement *&state, string tag_id, string status, string time )
+{
+    string query = "INSERT INTO event VALUES ( '0','" + tag_id + "', '" + status + "', '" +  time + "' );";
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
 
 
 int SQL_OFF_SafeUpdate( Statement *&state )
@@ -816,7 +825,39 @@ string Str2Time_ShiftDate( string date )
 
 }
 
+bool Time_In_Interval( string input, string starting, string ending)
+{
 
+    tm tm_, tm_start, tm_end;
+    time_t t_, t_start, t_end;
+
+    char buf[128]= {0};
+    char buf_start[128]= {0};
+    char buf_end[128]= {0};
+
+
+    strcpy (buf, input.c_str());
+    strcpy (buf_start, starting.c_str());
+    strcpy (buf_end, ending.c_str());
+
+    strptime(buf, "%Y-%m-%d %H:%M:%S", &tm_); //将字符串转换为tm时间
+    strptime(buf_start, "%Y-%m-%d %H:%M:%S", &tm_start); //将字符串转换为tm时间
+    strptime(buf_end, "%Y-%m-%d %H:%M:%S", &tm_end); //将字符串转换为tm时间
+
+    tm_.tm_isdst = -1;
+    tm_start.tm_isdst = -1;
+    tm_end.tm_isdst = -1;
+
+    t_  = mktime(&tm_); //将tm时间转换为秒时间
+    t_start  = mktime(&tm_start); //将tm时间转换为秒时间
+    t_end  = mktime(&tm_end); //将tm时间转换为秒时间
+
+    if ( t_ >= t_start && t_ <= t_end )
+        return true ;
+    else
+        return false ;
+
+}
 
 
 json json_SQL_GetSingleLocus( Statement *&state, string tag_id, string start_date, string start_time, string end_date, string end_time, ResultSet *&result )
@@ -912,7 +953,7 @@ json json_SQL_GetSingleLocus_combine( Statement *&state, string tag_id, string s
 
 
     string query3 = " select coordinate_x, coordinate_y, map_id, time from ( select coordinate_x, coordinate_y, group_id, time from locus_combine" ;
-    string query4 = " where tag_id = '000000000000000C' and time between '" ;
+    string query4 = " where tag_id = '" + tag_id + "' and time between '" ;
     string query5 = "" ;
     if ( start_date != end_date )
         query5 = start_date + " " + start_time + "' and '" + start_date + " " + "23:59:59" + "' ";
@@ -927,39 +968,92 @@ json json_SQL_GetSingleLocus_combine( Statement *&state, string tag_id, string s
     )a join map_groups b on b.group_id = a.group_id limit 0,86400  ;
     */
 
+    string today_index_in_locus_index       = SQL_Get_indexOf_locus_index_by_date(start_date) ;
+    string next_date_index_in_locus_index   = "" ;
+    next_date_index_in_locus_index          = SQL_Get_date_by_indexOf_locus_index(today_index_in_locus_index) ;
 
+    string query11 = "select tag_id, coordinate_x, coordinate_y, map_id, time from (" ;
+    string query12 = "select * from (" ;
+    // search from the first data's id
+    string query13 = "select * from locus_combine where id > (select index_id from locus_index where date = '" + start_date + "') " ;
+    cout << "next indext:" << next_date_index_in_locus_index << endl ;
+    if ( next_date_index_in_locus_index != "" )
+        query13 += "and id < '" + next_date_index_in_locus_index + "'" ;
+
+    string query14 = " )e where tag_id = '" + tag_id + "' and time between '";
+    string query15 = "";
+    if ( start_date != end_date )
+        query15 = start_date + " " + start_time + "' and '" + start_date + " " + "23:59:59" + "' ";
+    else // ( start_date == end_date )
+        query15 = start_date + " " + start_time + "' and '" + start_date + " " + end_time + "' ";
+
+    string query16 = ")a join map_groups b on b.group_id = a.group_id limit 0,864000 ;" ;
     /*
     select coordinate_x, coordinate_y, map_id, time from (
-        select * from (
+        select coordinate_x, coordinate_y, group_id, time from (
             select * from locus_combine
-            where id > (select id from locus_index where date = '2019-03-29')
-        )e where tag_id = '000000000000000C' and time between '2019-03-29 10:00:32.72' and '2019-03-29 11:00:32.72'
+            where id > (select index_id from locus_index where date = '2019-03-29')
+        )e where tag_id = '000000000000000C' and time between '2019-03-29 13:00:32.72' and '2019-03-29 16:00:32.72'
     )a join map_groups b on b.group_id = a.group_id limit 0,864000;
     */
 
+    /*
+    select coordinate_x, coordinate_y, map_id, time from (
+        select coordinate_x, coordinate_y, group_id, time from (
+            select * from locus_combine
+            where id > (select index_id from locus_index where date = '2019-03-29')
+        )e where tag_id = '000000000000000C' and time between '2019-03-29 15:30:32.72' and '2019-03-29 16:00:32.72'
+    )a join map_groups b on b.group_id = a.group_id limit 0,864000 ;
+    */
 
-    query = query3 + query4 + query5 + query6 ;
+//    query = query11 + query12 + query13 + query14 + query15 + query16 ;
+//    query = query3 + query4 + query5 + query6 ;
 //    query = query + query2 ;
 
+    string query21 = "select * from locus_combine where id >= (select index_id from locus_index where date = '" + start_date + "') " ;
+    if ( next_date_index_in_locus_index != "" )
+        query21 += "and id <= '" + next_date_index_in_locus_index + "' ;" ;
+    /*
+    select * from locus_combine
+		where id >= (select index_id from locus_index where date = '2019-03-29') and id <= '22320127' limit 0,864000;
+    */
+
+
+    string interval_start = start_date + " " + start_time ;
+    string interval_end = end_date + " " + end_time ;
+    if ( start_date != end_date )
+        interval_end = start_date + " " + "23:59:59" ;
+    else // ( start_date == end_date )
+        interval_end = start_date + " " + end_time ;
+
+    query = query21 ;
+
     cout << query << endl ;
+    int cnt = 0 ;
     try
     {
         result = state->executeQuery(query);
         while (result->next())
         {
-            string coordinate_x = result->getString("coordinate_x");
-            string coordinate_y = result->getString("coordinate_y");
-            string map_id = result->getString("map_id");
             string time = result->getString("time");
+            string sql_tag_id = result->getString("tag_id");
 
 
-            temp["coordinate_x"] = coordinate_x;
-            temp["coordinate_y"] = coordinate_y;
-            temp["map_id"] = map_id;
-            temp["time"] = time;
+            if ( sql_tag_id == tag_id && Time_In_Interval( time, interval_start, interval_end )  )
+            {
+                string coordinate_x = result->getString("coordinate_x");
+                string coordinate_y = result->getString("coordinate_y");
+                string map_id = result->getString("map_id");
 
-            foo["Values"].push_back(temp);
-            temp.clear();
+
+                temp["coordinate_x"] = coordinate_x;
+                temp["coordinate_y"] = coordinate_y;
+                temp["map_id"] = map_id;
+                temp["time"] = time;
+                cnt++;
+                foo["Values"].push_back(temp);
+                temp.clear();
+            }
         }
 
         string flag = "1" ;
@@ -980,6 +1074,7 @@ json json_SQL_GetSingleLocus_combine( Statement *&state, string tag_id, string s
         foo["end_time"] = end_time;
         foo["Status"] = flag ;
         foo["tag_id"] = tag_id ;
+        foo["amount"] = cnt ;
     }
     catch(sql::SQLException& e)
     {
@@ -992,6 +1087,94 @@ json json_SQL_GetSingleLocus_combine( Statement *&state, string tag_id, string s
 
 }
 
+
+string SQL_Get_indexOf_locus_index_by_date( string date )
+{
+    // if today's date is 2019/03/29, index of locus_index is 3, get the data of that index of locus_index "4" in the database.
+
+    string ret_val = "";
+    Connection *con = nullptr;//= connpool.GetConnection();;
+    Statement *state = nullptr;
+    ResultSet *result = nullptr;
+    try
+    {
+        SQL_Open_single( con, state, result ) ;
+
+
+        string get_next_index = "select * from ( SELECT  @rownum := @rownum + 1 AS 'rownum',date,index_id " ;
+        string get_next_index2 = "FROM  locus_index,(SELECT @rownum := 0)b  )c where date = '" + date + "' ; " ;
+        /*
+        select * from ( SELECT  @rownum := @rownum + 1 AS 'rownum',date,index_id
+            FROM  locus_index,(SELECT @rownum := 0)b
+        )c where date = '2019-03-28';
+        */
+
+
+        result = state->executeQuery( get_next_index + get_next_index2 );
+        if (result->next())
+        {
+            string rownum = result->getString("rownum");
+            string date = result->getString("date");
+            string index_id = result->getString("index_id");
+            ret_val = rownum ;
+        }
+
+
+        SQL_Close_single( con, state, result );
+
+    }
+    catch ( exception &e )
+    {
+        cout << "json parse error from SQL_Get_indexOf_locus_index_by_date" << endl;
+        cout << e.what() << endl ;
+        //SQL_Close();
+        SQL_Close_single( con, state, result );
+        return ret_val;
+    }
+
+    return ret_val;
+}
+
+string SQL_Get_date_by_indexOf_locus_index( string rownum )
+{
+    // if today's date is 2019/03/29, index of locus_index is 3, get the data of that index of locus_index "4" in the database.
+
+    string ret_val = "";
+    Connection *con = nullptr;//= connpool.GetConnection();;
+    Statement *state = nullptr;
+    ResultSet *result = nullptr;
+    try
+    {
+        SQL_Open_single( con, state, result ) ;
+
+
+        string get_next_index = "select * from ( SELECT  @rownum := @rownum + 1 AS 'rownum',date,index_id " ;
+        string get_next_index2 = "FROM  locus_index,(SELECT @rownum := 0)b )c where rownum = " + rownum + "+1 ; " ;
+
+        result = state->executeQuery( get_next_index + get_next_index2 );
+        if (result->next())
+        {
+            string rownum = result->getString("rownum");
+            string date = result->getString("date");
+            string index_id = result->getString("index_id");
+            ret_val = index_id ;
+        }
+
+
+        SQL_Close_single( con, state, result );
+
+    }
+    catch ( exception &e )
+    {
+        cout << "json parse error from SQL_Get_date_by_indexOf_locus_index" << endl;
+        cout << e.what() << endl ;
+        //SQL_Close();
+        SQL_Close_single( con, state, result );
+        return ret_val;
+    }
+
+    return ret_val;
+}
 
 
 

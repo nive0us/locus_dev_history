@@ -2370,7 +2370,8 @@ string TransTime( string tmp )
 
 }
 
-string Get_LastDay_date() {
+string Get_LastDay_date()
+{
 
     char buf[128]= {0};
 
@@ -2393,7 +2394,8 @@ string Get_LastDay_date() {
 
 }
 
-void check_locus_index() {
+void check_locus_index()
+{
     string date = Get_LastDay_date() ;
 
     SQL_Update_locus_index(date);
@@ -2458,6 +2460,14 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
 
     if (status_record_count!=0)
     {
+
+        Connection *con = nullptr;//= connpool.GetConnection();;
+        Statement *state = nullptr;
+        ResultSet *result = nullptr;
+        if ( _SQL_flag )
+            SQL_Open_single( con, state, result ) ;
+
+
         for (size_t i = 0; i < status_record_count; i++)
         {
             bool flag = false;
@@ -2473,6 +2483,14 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
                             Tag_Map_Status_temp->Status = Tag_Status_record_info[i].Status_info_record[Tag_Status_record_info[i].Info_count - 1].Status;
                             Tag_Map_Status_temp->System_Time = Tag_Status_record_info[i].Status_info_record[Tag_Status_record_info[i].Info_count - 1].System_Time;
                             Tag_Map_Status_temp->Tag_ID = Tag_Status_record_info[i].Tag_ID;
+
+                            string temp_time = Tag_Map_Status_temp->System_Time ;
+                            string temp_id = Tag_Map_Status_temp->Tag_ID ;
+                            string temp_status = to_string(Tag_Map_Status_temp->Status) ;
+                            string temp_date_time = Trans2Standard(temp_time);
+                            if ( Record2SQL && _SQL_flag )
+                                SQL_AddEvent( state, temp_id, temp_status, temp_date_time ) ;
+
                             //display_status();
                             Request_Alarm_Status_temp[request_alarm_count].Status = Tag_Map_Status_temp->Status;
                             Request_Alarm_Status_temp[request_alarm_count].System_Time = Tag_Map_Status_temp->System_Time;
@@ -2490,6 +2508,15 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
                 Tag_Map_Status_temp->Status = Tag_Status_record_info[i].Status_info_record[Tag_Status_record_info[i].Info_count - 1].Status;
                 Tag_Map_Status_temp->System_Time = Tag_Status_record_info[i].Status_info_record[Tag_Status_record_info[i].Info_count - 1].System_Time;
                 Tag_Map_Status_temp->Tag_ID = Tag_Status_record_info[i].Tag_ID;
+
+                string temp_time = Tag_Map_Status_temp->System_Time ;
+                string temp_id = Tag_Map_Status_temp->Tag_ID ;
+                string temp_status = to_string(Tag_Map_Status_temp->Status) ;
+                string temp_date_time = Trans2Standard(temp_time);
+                if ( Record2SQL && _SQL_flag )
+                    SQL_AddEvent( state, temp_id, temp_status, temp_date_time ) ;
+
+
                 //display_status();
             }
         }
@@ -2500,6 +2527,10 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
             Tag_Map_Status[i].System_Time = Tag_Status_record_info[i].Status_info_record[Tag_Status_record_info[i].Info_count - 1].System_Time;
         }
         status_record_count_temp = status_record_count;
+
+
+        if ( _SQL_flag )
+            SQL_Close_single( con, state, result );
     }
 
 
@@ -3853,38 +3884,6 @@ void Setting_Server_IP()
 
 
 
-void test_data()
-{
-    Connection *con = nullptr;//= connpool.GetConnection();;
-    Statement *state = nullptr;
-    ResultSet *result = nullptr;
-
-
-    if ( _SQL_flag )
-        SQL_Open_single( con, state, result ) ;
-
-
-    for ( int i = 0 ; i < 10000 ; i++)
-        // insert into locus values ( '0', '000000000000000C', '854', '42', '1', '2019-03-27', '01:05:24.21' );
-        if ( _SQL_flag )
-            SQL_AddLocus_combine( state, "000000000000000C", "854", "42", "1",  "2019-03-28 01:05:24.21" ) ;
-
-     for ( int i = 0 ; i < 20000 ; i++)
-        // insert into locus values ( '0', '000000000000000C', '854', '42', '1', '2019-03-27', '01:05:24.21' );
-        if ( _SQL_flag )
-            SQL_AddLocus_combine( state, "000000000000000C", "854", "42", "1",  "2019-03-28 11:22:33.21" ) ;
-
-    for ( int i = 0 ; i < 300000 ; i++)
-        // insert into locus values ( '0', '000000000000000C', '854', '42', '1', '2019-03-27', '01:05:24.21' );
-        if ( _SQL_flag )
-            SQL_AddLocus_combine( state, "000000000000000C", "854", "42", "1",  "2019-03-28 22:55:44.21" ) ;
-
-
-    if ( _SQL_flag )
-        SQL_Close_single( con, state, result );
-
-
-}
 int main()
 {
 

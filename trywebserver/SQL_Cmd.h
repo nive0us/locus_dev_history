@@ -58,6 +58,8 @@ int SQL_AddMap_Group( Statement *&state, string map_id, string group_id ) ;
 
 int SQL_AddLocus( Statement *&state, string tag_id, string x, string y, string group_id, string date, string time ) ;
 int SQL_AddLocus_combine( Statement *&state, string tag_id, string x, string y, string group_id,  string time ) ;
+int SQL_AddEvent( Statement *&state, string tag_id, string status, string time ) ;
+
 
 int SQL_OFF_SafeUpdate( Statement *&state );
 int SQL_DeleteAnchor( Statement *&state, string id );
@@ -85,3 +87,6 @@ json json_SQL_GetSingleLocus_combine( Statement *&state, string tag_id, string s
 void SQL_Update_locus_index( string date );
 string Str2Time_BackDate( string date );
 string Str2Time_ShiftDate( string date );
+string SQL_Get_indexOf_locus_index_by_date( string date );
+string SQL_Get_date_by_indexOf_locus_index( string rownum );
+bool Time_In_Interval( string input, string starting, string ending) ;
