@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1550490208 source:/home/szok/桌面/trywebserver/TCP.cpp
+1552285552 source:/home/szok/桌面/trywebserver/TCP.cpp
 	<stdio.h>
 	<sys/types.h>
 	<sys/socket.h>
@@ -12,7 +12,7 @@
 	<string>
 	"TCP.h"
 
-1550490237 /home/szok/桌面/trywebserver/TCP.h
+1552285298 /home/szok/桌面/trywebserver/TCP.h
 
 1546398744 /home/szok/桌面/trywebserver/def.h
 	<sys/socket.h>
@@ -55,7 +55,7 @@
 1550732234 /home/szok/桌面/trywebserver/UDP.h
 	<string>
 
-1551923834 source:/home/szok/桌面/trywebserver/main.cpp
+1552630241 source:/home/szok/桌面/trywebserver/main.cpp
 	<iostream>
 	<stdio.h>
 	<ifaddrs.h>
@@ -67,6 +67,7 @@
 	"def.h"
 	"CRC32.h"
 	"json.hpp"
+	"Cmd.h"
 	<stdio.h>
 	<iostream>
 	<stdlib.h>
@@ -109,7 +110,7 @@
 	<termios.h>
 	<vector>
 
-1547018670 source:/home/szok/桌面/trywebserver/Comport.cpp
+1551938129 source:/home/szok/桌面/trywebserver/Comport.cpp
 	<iostream>
 	"ser.h"
 	"Comport.h"
@@ -307,4 +308,30 @@
 	<string>
 	<vector>
 	<utility>
+
+1552614542 source:/home/szok/桌面/trywebserver/Cmd.cpp
+	<stdio.h>
+	<iostream>
+	<unistd.h>
+	<string.h>
+	<map>
+	<functional>
+	<fstream>
+	"CRC32.h"
+	<Cmd.h>
+	<TCP.h>
+	"json.hpp"
+	<Comport.h>
+	"ser.h"
+
+1552277042 /home/szok/桌面/trywebserver/Cmd.cpp
+	<stdio.h>
+	<iostream>
+	<unistd.h>
+	<string.h>
+	<map>
+	<functional>
+	"TCP.h"
+
+1552614289 /home/szok/桌面/trywebserver/Cmd.h
 

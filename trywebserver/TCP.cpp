@@ -708,5 +708,11 @@ namespace rfid
 		}
 		crc_value = crc;
 	}
+
+	void TCP::test()
+	{
+	    printf( "aaaaa\n" ) ;
+
+	}
 }
 

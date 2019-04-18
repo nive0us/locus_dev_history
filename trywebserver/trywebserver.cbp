@@ -37,6 +37,8 @@
 		</Compiler>
 		<Unit filename="CRC32.cpp" />
 		<Unit filename="CRC32.h" />
+		<Unit filename="Cmd.cpp" />
+		<Unit filename="Cmd.h" />
 		<Unit filename="Comport.cpp" />
 		<Unit filename="Comport.h" />
 		<Unit filename="Location.h" />

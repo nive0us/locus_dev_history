@@ -10,6 +10,7 @@
 #include "def.h"
 #include "CRC32.h"
 #include "json.hpp"
+#include "Cmd.h"
 
 #include <stdio.h>
 #include <iostream>
@@ -35,10 +36,11 @@
 // include from .h
 
 //
-
+vector<string> list;
 using json = nlohmann::json;
 json g_json_single ;
 json g_json_multi ;
+map<string, Callback_Fun0> g_RW_json_package;
 using namespace std;
 
 // sql connect
@@ -1050,6 +1052,7 @@ void Command()
                             cout << "update failed!" << endl ;
                             goto return_error;
                         }
+
                         if (stopvalue == false)
                         {
                             //displaymesgbox(13);
@@ -1187,6 +1190,7 @@ return_ok:
 
 }
 
+string main_extern = "YOOOOO" ;
 std::string rf_channel          = "" ;
 std::string rf_datarate         = "" ;
 std::string rf_prf              = "" ;
@@ -1377,6 +1381,8 @@ void Set_device_arg()
 
     g_json_single["dev_transmission_cycle_time"] = dev_transmission_cycle_time;
     g_json_single["dev_active_ID"] = dev_active_ID ;
+    cout << "dev cycle time :" << dev_transmission_cycle_time << endl ;
+    cout << "dev id :" << dev_active_ID << endl ;
 
 }
 
@@ -1506,7 +1512,7 @@ void Write_Network_setting()
 
 
 
-void Write_Basic_setting()
+extern void Write_Basic_setting()
 {
     try
     {
@@ -2187,6 +2193,8 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
             long temp_x = (long)(Tag_Map_point[i].point.x / temp_scale);
             long temp_y = (long)(Tag_Map_point[i].point.y / temp_scale);
 
+            //WriteToSQL()
+
 
 //            dc.DrawPoint(wxPoint(temp_x+StaticBitmap1->GetPosition().x, 373-temp_y+StaticBitmap1->GetPosition().y));
             //cout << ">>>>>>>>>>>>>>>>>>>>>>>>>X:" << temp_x << ", Y:" << temp_y << endl ;
@@ -2334,7 +2342,7 @@ void TCP_thread_Safe( SOCKET m_socket )
     if ( debug_mode )
         cout << "TCP thread" << endl ;
 
-    int buf_len = 1000 ;
+    int buf_len = 2000 ;
 
     unsigned char testbuff[buf_len] = { 0 };
     int timeout_count = 0;
@@ -2634,7 +2642,7 @@ void TCP_thread_Safe( SOCKET m_socket )
             else if (strstr((char*)testbuff, "POST /Command HTTP/1.1") != 0 )
             {
                 //{"Command_Type":["Read"],"Command_Name":["Connect"],"Value":{"IP_address":["192.168.1.38","192.168.1.90"]}}
-                //{"Command_Type":["Read"],"Command_Name":["RF"],"Value":{"IP_address":["192","168","1","37"]}}
+                //{"Command_Type":["Read"],"Command_Name":["RF"],"Value":{"IP_address":["192.168.1.38"]}, "call_func :["ip","gw","msk","cip"]}
                 //{"Command_Type":["Read"],"Command_Name":["Search"],"Value":{"net_interface_id":["enp0s31f6"],"ip":["192.168.1.139"]}}
                 //{"Command_Type":["Write"],"Command_Name":["Basic"],"Value":{"IP_address":["192.168.1.38","192.168.1.90"],"dev_active_ID": "65513","dev_transmission_cycle_time":""}}
                 //{"Command_Type":["Read"],"Command_Name":["Basic"],"Value":{"IP_address":["192.168.1.38","192.168.1.90"]}}
@@ -2856,6 +2864,363 @@ void TCP_thread_Safe( SOCKET m_socket )
 
             }
 
+            else if (strstr((char*)testbuff, "POST /test2 HTTP/1.1") != 0 )
+            {
+
+                string target = "" ;
+                string action = "" ;
+                string command_name = "" ;
+                int dev_amount = 0, function_amount = 0, rw_flag = 0 ;
+                json j_response;
+                try
+                {
+                    stringstream json_part ;
+                    json_part << deli_arg ; // char* to stringstream
+                    cout << "stream:"<< json_part.str() << endl ; // stringstream to string
+                    auto arg_from_web = json::parse(json_part.str()); // string to json parser
+                    cout << "get_arg from web :" << arg_from_web << endl ;
+
+                    action = arg_from_web["Command_Type"][0].get<std::string>() ;
+                    command_name = arg_from_web["Command_Name"][0].get<std::string>() ;
+                    function_amount = arg_from_web["Value"]["function"].size() ;
+                    dev_amount = arg_from_web["Value"]["IP_address"].size() ;
+
+                    if ( action == "Write" )
+                        rw_flag = 2;
+                    else
+                        rw_flag = 1 ;
+
+
+
+                    if ( command_name == "Search" )
+                    {
+                        str_inferface_ip = "" ;
+                        str_inferface_ip = arg_from_web["Value"]["net_interface_id"][0].get<std::string>();
+
+                        dev_count = 0 ;
+                        if ( str_inferface_ip != "" )
+                            dev_count = Update_search_dev( str_inferface_ip ) ;
+                        if (dev_count != 0)
+                        {
+                            j_response = g_json_multi ;
+                            g_json_multi.clear() ;
+                        }
+
+                    }
+
+                    else
+                    {
+                        if ( function_amount != 0 )
+                        {
+
+                            for ( int j = 0 ; j < dev_amount ; j++ )
+                            {
+                                target = arg_from_web["Value"]["IP_address"][j].get<std::string>() ;
+                                target_ip = (char*)target.c_str() ;
+                                cout << endl << target_ip << endl ;
+
+
+                                if ( rw_flag == 2 )   // write
+                                {
+                                    g_json_single = arg_from_web["Value"] ;
+                                    // get package data for json
+                                    g_RW_json_package[action+"_"+command_name]();
+//                                            g_function_7_arg_map[launch_cmd].RW_arg( rw_flag, set_Reader_value, Reader_value ) ; // set wrote value
+                                }
+
+
+                                for ( int i = 0 ; i < function_amount ; i++ )
+                                {
+                                    string launch_cmd = arg_from_web["Value"]["function"][i].get<std::string>();
+                                    Command_success = 0 ;
+
+
+                                    int Value_flag = 0;
+                                    unsigned char Reader_value[2048] = { 0 };
+                                    unsigned char set_Reader_value[2048] = { 0 };
+                                    memset(Reader_value, 0, sizeof(Reader_value));
+
+
+
+
+                                    // found the command in g_function_7_arg_map ;
+                                    if ( g_function_7_arg_map.count(launch_cmd) != 0 )
+                                    {
+                                        cout << "func 7" << endl ;
+
+                                        if ( rw_flag == 2 )   // write
+                                        {
+                                            cout << rw_flag << endl ;
+//                                            g_json_single = arg_from_web["Value"] ;
+//                                            // get package data for json
+//                                            g_RW_json_package[action+"_"+command_name]();
+                                            g_function_7_arg_map[launch_cmd].RW_arg( rw_flag, set_Reader_value, Reader_value ) ; // set wrote value
+                                        }
+
+                                        int set_length = g_function_7_arg_map[launch_cmd].set_length;
+                                        g_function_7_arg_map[launch_cmd].callback(target_ip, TCP_Server_Port, (rw_flag - 1), set_Reader_value, set_length, Reader_value, Value_flag);
+
+                                        if (Value_flag != 1) // sent command failed!
+                                        {
+                                            cout << "error from:" << launch_cmd << endl ;
+                                            goto return_error;
+                                        }
+                                        else if ( Value_flag && rw_flag == 1 )
+                                        {
+                                            g_function_7_arg_map[launch_cmd].RW_arg( rw_flag, Reader_value, Reader_value) ; // read returned value
+//                                            // set package data for json
+//                                            g_RW_json_package[action+"_"+command_name]();
+                                        }
+
+                                        usleep(2000);
+
+                                    }
+
+//                                    if (client_ip_flag)
+//                                    {
+//                                        Value_flag = 0;
+//                                        memset(Reader_value, 0, sizeof(Reader_value));
+//                                        if (client_ip_flag == 2)
+//                                        {
+//                                            for (size_t i = 0; i < 4; i++)
+//                                                set_Reader_value[i] = CLIENT_IP_temp[i];
+//                                        }
+//                                        if (Interface_name == UWB_Interface1)
+//                                            rfid::TCP::RW_ClientIP(target_ip, TCP_Server_Port, (client_ip_flag - 1), set_Reader_value, 4, Reader_value, Value_flag);
+//                                        client_ip_flag = 0;
+//                                        if (Value_flag != 1)
+//                                            goto return_error;
+//                                        if (read_network_flag != 0)
+//                                        {
+//                                            for (size_t i = 0; i < 4; i++)
+//                                                CLIENT_IP_temp[i] = Reader_value[i];
+//                                        }
+//                                        sleep(20);
+//                                        usleep(2000);
+//                                    }
+//
+
+
+                                    // found the command in g_function_52_arg_map ;
+                                    else if ( g_function_52_arg_map.count(launch_cmd) != 0 ) // update FW
+                                    {
+                                        cout << "func 52" << endl ;
+
+                                        string fw_path = "/home/szok/桌面/韌體/ANCHOR 韌體/001.001.bin" ;
+
+                                        g_function_52_arg_map[launch_cmd].RW_arg( target_ip, fw_path, Value_flag );
+
+                                        if (Value_flag != 1) // sent command failed!
+                                        {
+                                            cout << "update failed" << endl ;
+                                            goto return_error;
+                                        }
+
+                                        cout << "update success" << endl ;
+                                        goto return_ok;
+
+
+                                        usleep(2000);
+                                    }
+
+
+
+
+                                    // found the command in g_function_4_arg_map ;
+                                    else if ( g_function_4_arg_map.count(launch_cmd) != 0 )
+                                    {
+                                        cout << "func 4" << endl ;
+
+                                        if ( rw_flag == 2 )   // write
+                                            g_function_4_arg_map[launch_cmd].RW_arg( rw_flag, set_Reader_value, Reader_value ) ; // set wrote value
+
+
+                                        g_function_4_arg_map[launch_cmd].callback(target_ip, TCP_Server_Port, Reader_value, Value_flag);
+
+                                        if (Value_flag != 1) // sent command failed!
+                                        {
+                                            cout << "error from:" << launch_cmd << endl ;
+                                            goto return_error;
+                                        }
+                                        else if ( Value_flag && rw_flag == 1 )
+                                            g_function_4_arg_map[launch_cmd].RW_arg( rw_flag, Reader_value, Reader_value) ; // read returned value
+
+                                        usleep(2000);
+                                    }
+
+
+                                    else
+                                    {
+                                        cout << "Not found cmd :" <<  launch_cmd << endl ;
+                                        goto return_error;
+                                    }
+
+
+
+                                } // send to one device all cmd successfully
+
+                                if ( rw_flag == 1 )
+                                {
+                                    // set package data for json
+                                    g_RW_json_package[action+"_"+command_name]();
+                                }
+                                goto return_ok;
+
+return_error:
+                                {
+                                    Command_success = 0 ;
+                                    g_json_single["Command_status"] = Command_success ;
+                                    g_json_single["error at"] = target_ip ;
+                                    cout << "return error" << endl ;
+                                    cout << "return from :" << target_ip << endl ;
+                                    g_json_single.clear() ;
+                                    break;
+
+                                }
+
+
+return_ok:
+                                {
+                                    Command_success = 1 ;
+                                    cout << "return ok" << endl ;
+
+                                }
+
+
+
+                                // one device ran out all command
+
+                                //cout << "after goto" << endl ;
+                                g_json_single["Command_status"] = Command_success ;
+                                g_json_multi.push_back(g_json_single);
+                                g_json_single.clear() ;
+
+
+                            }
+
+                            cout << "sent to all device"<< endl ;
+                            //cout << g_json_multi.dump(2) << endl ;
+
+
+                            j_response = g_json_multi ;
+                            //j_response.push_back(g_json_multi);
+                            g_json_multi.clear() ;
+
+
+                        }
+                    }
+
+
+
+
+                }
+                catch(json::parse_error)
+                {
+                    cout << "parse_error" << endl ;
+                }
+                catch(json::type_error)
+                {
+                    cout << "type_error" << endl ;
+                }
+                catch( exception &e )
+                {
+                    cout << "other error" << endl ;
+                }
+
+                std::string response_text = j_response.dump();
+                binch2 = response_text.c_str();
+                bytesSent = send(SOCKET_temp, (const char*)binch2, strlen(binch2), 0);
+
+
+            }
+
+//            "Command_Type": ["Read"],
+//            "Command_Name": ["RF"],
+//            "Value": {
+//                "IP_address": [connect_ip_array[ip_arr_len - 1]],
+//                "function": ["Model_Name", "Version_Name", "rf_MODE", "rf_active_ID", "rf_channel",
+//                    "rf_Datarate", "rf_PRF", "rf_PreambleCode", "rf_PreambleLength", "rf_PAC",
+//                    "rf_TX_PGdelay", "rf_TX_Power", "rf_NSD", "rf_SDF_timeoutr", "rf_SMARTPOWER",
+//                    "rf_NTM", "rf_MULT"
+//
+
+            else if (strstr((char*)testbuff, "POST /sql HTTP/1.1") != 0 )
+            {
+
+                string target = "" ;
+                string action = "" ;
+                string command_name = "" ;
+                int dev_amount = 0, function_amount = 0, rw_flag = 0 ;
+                json j_response;
+                try
+                {
+                    stringstream json_part ;
+                    json_part << deli_arg ; // char* to stringstream
+                    cout << "stream:"<< json_part.str() << endl ; // stringstream to string
+                    auto arg_from_web = json::parse(json_part.str()); // string to json parser
+                    cout << "get_arg from web :" << arg_from_web << endl ;
+
+                    action = arg_from_web["Command_Type"][0].get<std::string>() ;
+                    command_name = arg_from_web["Command_Name"][0].get<std::string>() ;
+                    function_amount = arg_from_web["Value"]["function"].size() ;
+                    dev_amount = arg_from_web["Value"]["IP_address"].size() ;
+
+                    if ( action == "Write" )
+                        rw_flag = 2;
+                    else
+                        rw_flag = 1 ;
+
+
+
+                    if ( command_name == "Search" )
+                    {
+                        str_inferface_ip = "" ;
+                        str_inferface_ip = arg_from_web["Value"]["net_interface_id"][0].get<std::string>();
+
+                        dev_count = 0 ;
+                        if ( str_inferface_ip != "" )
+                            dev_count = Update_search_dev( str_inferface_ip ) ;
+                        if (dev_count != 0)
+                        {
+                            j_response = g_json_multi ;
+                            g_json_multi.clear() ;
+                        }
+
+                    }
+
+                    else
+                    {
+                        if ( function_amount != 0 )
+                        {
+
+
+                        }
+                    }
+
+
+
+                }
+                catch(json::parse_error)
+                {
+                    cout << "parse_error" << endl ;
+                }
+                catch(json::type_error)
+                {
+                    cout << "type_error" << endl ;
+                }
+                catch( exception &e )
+                {
+                    cout << "other error" << endl ;
+                }
+
+                std::string response_text = j_response.dump();
+                binch2 = response_text.c_str();
+                bytesSent = send(SOCKET_temp, (const char*)binch2, strlen(binch2), 0);
+
+
+            }
+
+
 
 
             /***********
@@ -3038,6 +3403,40 @@ void loc_run()
 }
 
 
+
+void List_port2()
+{
+
+    string port;
+    int fd;
+    //vector<string> list;
+    for(int i = 0; i < 256; ++i)
+    {
+        port.clear();
+        port.append("/dev/ttyUSB");
+        port.append(to_string(i));
+
+        fd = open(port.c_str(), O_RDWR | O_NOCTTY ); // | O_NDELAY
+        if(fd < 0 )
+        {
+            cout << "Error " << errno << " opening " << port << "\t: " << strerror (errno) << endl;
+
+        }
+        else
+        {
+            list.push_back(port);
+        }
+
+    }
+
+    cout << endl << "ok port : " << endl ;
+    for ( int i = 0 ; i < list.size() ; i++)
+        cout  << list[i] << endl ;
+
+
+
+}
+
 int main()
 {
 
@@ -3057,10 +3456,29 @@ int main()
 
     //Update_FW() ;
 
+    /*
+    cout << "Comport list" << endl ;
+    List_port2();
+    serialPort1->Set_port_name(list[0]);
+    serialPort1->Open_port();
+    Read_Basic_setting() ;
+    //serialPort1->
+    //*/
 
 
+    construct_func_map() ;
+    construct_RW_json_map();
+
+    //g_RW_json_package["Read_RF"]();
+
+
+    //*
     cout << "LOC" << endl ;
     loc_run();
+    //*/
+
+
+
 
 
 
