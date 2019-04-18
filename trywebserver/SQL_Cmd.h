@@ -53,7 +53,7 @@ int SQL_AddMap( Statement *&state, string map_id, string map_name, string map_pa
 int SQL_AddGroup_Anchor( Statement *&state, string group_id, string main_anchor_id ) ;
 int SQL_AddMap_Group( Statement *&state, string map_id, string group_id ) ;
 
-int SQL_AddLocus( Statement *&state, string tag_id, string x, string y, string group_id, string time ) ;
+int SQL_AddLocus( Statement *&state, string tag_id, string x, string y, string group_id, string date, string time ) ;
 
 
 int SQL_OFF_SafeUpdate( Statement *&state );
@@ -73,4 +73,4 @@ json json_SQL_GetGroup_Anchors( Statement *&state, ResultSet *&result );
 json json_SQL_GetMap_Groups( Statement *&state, ResultSet *&result );
 
 json json_SQL_GetTags_info( Statement *&state, ResultSet *&result );
-json json_SQL_GetSingleLocus( Statement *&state, string tag_id, string time_start, string time_end, ResultSet *&result ) ;
+json json_SQL_GetSingleLocus( Statement *&state, string tag_id, string start_date, string start_time, string end_date, string end_time, ResultSet *&result ) ;

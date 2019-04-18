@@ -20,7 +20,7 @@ string sql_create_table     = "CREATE TABLE IF NOT EXISTS  " ;
 
 
 string sql_create_locus1    = "locus ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), tag_id VARCHAR(16), " ;
-string sql_create_locus2    = "coordinate_x INT UNSIGNED, coordinate_y INT UNSIGNED, group_id SMALLINT UNSIGNED, `time` datetime(2) )";
+string sql_create_locus2    = "coordinate_x INT UNSIGNED, coordinate_y INT UNSIGNED, group_id SMALLINT UNSIGNED, `date` date,`time`time(2) )";
 string sql_create_locus     = sql_create_table + sql_create_locus1 + sql_create_locus2 ;
 
 
@@ -247,7 +247,7 @@ json Call_SQL_func( string func_name, json func_arg )
 
             else if ( func_name == "AddListGroup" )
                 success += SQL_AddGroup( state, func_arg[i]["group_id"].get<std::string>(), func_arg[i]["main_anchor_id"].get<std::string>(),
-                                        func_arg[i]["mode"].get<std::string>(), func_arg[i]["mode_value"].get<std::string>(), func_arg[i]["fence"].get<std::string>() ) ;
+                                         func_arg[i]["mode"].get<std::string>(), func_arg[i]["mode_value"].get<std::string>(), func_arg[i]["fence"].get<std::string>() ) ;
 
             else if ( func_name == "AddListMap" )
                 success += SQL_AddMap( state, func_arg[i]["map_id"].get<std::string>(), func_arg[i]["map_name"].get<std::string>(), func_arg[i]["map_path"].get<std::string>() ) ;
@@ -292,7 +292,7 @@ json Call_SQL_func( string func_name, json func_arg )
             ret = json_SQL_GetTags_info( state, result );
 
         else if ( func_name == "GetLocus" )
-            ret = json_SQL_GetSingleLocus( state, func_arg["tag_id"].get<std::string>(), func_arg["time_start"].get<std::string>(),  func_arg["time_end"].get<std::string>(), result ) ;
+            ret = json_SQL_GetSingleLocus( state, func_arg["tag_id"].get<std::string>(), func_arg["start_date"].get<std::string>(),  func_arg["start_time"].get<std::string>(), func_arg["end_date"].get<std::string>(),  func_arg["end_time"].get<std::string>(), result ) ;
 
 
         // **********Truncate table********
@@ -371,9 +371,9 @@ int SQL_AddMap_Group( Statement *&state, string map_id, string group_id )
 
 
 
-int SQL_AddLocus( Statement *&state, string tag_id, string x, string y, string group_id, string time )
+int SQL_AddLocus( Statement *&state, string tag_id, string x, string y, string group_id, string date,string time )
 {
-    string query = "INSERT INTO locus VALUES ( '0','" + tag_id + "', '" + x + "', '" + y + "', '" + group_id + "', '" + time + "' );";
+    string query = "INSERT INTO locus VALUES ( '0','" + tag_id + "', '" + x + "', '" + y + "', '" + group_id + "', '" +  date + "', '" + time + "' );";
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
@@ -710,11 +710,21 @@ json json_SQL_GetTags_info( Statement *&state, ResultSet *&result )
     return foo ;
 }
 
-json json_SQL_GetSingleLocus( Statement *&state, string tag_id, string time_start, string time_end, ResultSet *&result ) {
+json json_SQL_GetSingleLocus( Statement *&state, string tag_id, string start_date, string start_time, string end_date, string end_time, ResultSet *&result )
+{
     json foo;
     foo["success"] = 0 ;
     json temp ;
-    string query = "select * from locus where tag_id = '" + tag_id + "' and time >= '" + time_start + "'and time =< '" + time_end + "' ;";
+    string query = "select * from locus where tag_id = '" + tag_id + "' and ( date > '" + start_date + "'and date < '" + end_date + "' ";
+    string query2 = " or ( ( date = '" + start_date + "' and time >= '" + start_time + "') and ( date = '" + end_date + "' and time <= '" +  end_time + "') ) ) ;";
+    /*
+    select * from locus_date
+    where tag_id = '000000000000000C'
+    and ( date > '2019-03-24'
+    and date < '2019-03-26'
+    or ( ( date = '2019-03-24' and time >= '01:10:00.00') and ( date = '2019-03-26' and time <= '01:00:00.00') ) );
+    */
+    query = query + query2 ;
     try
     {
         result = state->executeQuery(query);

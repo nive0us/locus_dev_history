@@ -2317,14 +2317,15 @@ void init_anchor_list(void)
 
 string Trans2Standard( string tmp )
 {
-    //string tmp = input ;
 
-    //tmp = tmp.replace( tmp.begin(),tmp.begin()+10, "-" );
-
+    // 2019/12/13/18:30:50:54 -> 2019-12-13/18:30:50:54
     for ( int i = 0 ; i <2; i++ )
         tmp = tmp.replace( tmp.find( "/"),1,"-" );
 
+    // 2019-12-13/18:30:50:54 -> 2019-12-13 18:30:50:54
     tmp = tmp.replace( tmp.find( "/"),1," " );
+
+    // 2019-12-13/18:30:50:54 -> 2019-12-13 18:30:50.54
     tmp = tmp.replace( tmp.find_last_of( ":"),1,"." );
     return tmp;
 
@@ -2332,6 +2333,42 @@ string Trans2Standard( string tmp )
 
 }
 
+string TransDate( string tmp )
+{
+
+    // 2019/12/13/18:30:50:54 -> 2019-12-13/18:30:50:54
+    for ( int i = 0 ; i <2; i++ )
+        tmp = tmp.replace( tmp.find( "/"),1,"-" );
+
+    int current = 0;
+	int pos = tmp.find_first_of(" /", current);
+
+    // cout << tmp.substr(current, pos - current)<<endl;
+    string rets = tmp.substr(current, pos - current) ;
+
+    return rets;
+
+
+}
+
+string TransTime( string tmp )
+{
+    // 2019/12/13/18:30:50:54 -> 2019-12-13/18:30:50:54
+    for ( int i = 0 ; i <2; i++ )
+        tmp = tmp.replace( tmp.find( "/"),1,"-" );
+
+    int current = 0;
+    int pos = tmp.find_first_of(" /", current) + 1 ;
+
+    tmp = tmp.replace( tmp.find_last_of( ":"),1,"." );
+    string rets = tmp.substr(pos, tmp.length() - pos) ;
+
+//    cout << rets << endl ;
+    return rets;
+
+//    cout << tmp << endl ;
+
+}
 
 
 volatile bool Record2SQL = true ;
@@ -2369,9 +2406,12 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
             string temp_id = Tag_Map_point[i].Tag_Map_string ;
             string time = Tag_record_info[i].Tag_info_record[Tag_record_info[i].Info_count - 1].System_Time ;
 
-            string temp_time = Trans2Standard(time);
+            // cout << time << endl ;
+            // string temp_date_time = Trans2Standard(time);
+            string temp_date = TransDate(time);
+            string temp_time = TransTime(time);
             if ( Record2SQL && _SQL_flag )
-                SQL_AddLocus( state, temp_id, to_string(temp_x), to_string(temp_y), "1", temp_time ) ;
+                SQL_AddLocus( state, temp_id, to_string(temp_x), to_string(temp_y), "1", temp_date, temp_time ) ;
 
 
         }
