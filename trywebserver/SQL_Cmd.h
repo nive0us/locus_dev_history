@@ -79,6 +79,8 @@ json json_SQL_GetMaps( Statement *&state, ResultSet *&result );
 
 json json_SQL_GetStaffs( Statement *&state, ResultSet *&result );
 json json_SQL_GetDepartment_relation( Statement *&state, ResultSet *&result );
+json json_SQL_Return_inserted_id( Statement *&state, ResultSet *&result );
+
 
 json json_SQL_GetGroup_Anchors( Statement *&state, ResultSet *&result );
 json json_SQL_GetMap_Groups( Statement *&state, ResultSet *&result );
