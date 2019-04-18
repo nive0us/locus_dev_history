@@ -48,7 +48,7 @@ string sql_create_map_group     = sql_create_table + sql_create_map_group1 + sql
 
 
 
-string sql_create_tag1  = "tag_info ( tag_id INT UNSIGNED NOT NULL, PRIMARY KEY (tag_id), tag_name VARCHAR(16), " ;
+string sql_create_tag1  = "tag_info ( tag_id VARCHAR(16) NOT NULL, PRIMARY KEY (tag_id), tag_name VARCHAR(16), " ;
 string sql_create_tag2  = "pic_path VARCHAR(128) )";
 string sql_create_tag   = sql_create_table + sql_create_tag1 + sql_create_tag2 ;
 
@@ -68,12 +68,12 @@ string sql_create_locus_index2  = "index_id INT UNSIGNED  )";
 string sql_create_locus_index   = sql_create_table + sql_create_locus_index1 + sql_create_locus_index2 ;
 
 
-string sql_create_locus_index_hour1  = "locus_index_hour ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), `datetime`datetime(2),  " ;
+string sql_create_locus_index_hour1  = "locus_index_hour ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), `datetime`datetime(2), INDEX index_datetime(`datetime`), " ;
 string sql_create_locus_index_hour2  = "index_id INT UNSIGNED  )";
 string sql_create_locus_index_hour   = sql_create_table + sql_create_locus_index_hour1 + sql_create_locus_index_hour2 ;
 
 
-string sql_create_locus_index_min1  = "locus_index_min ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), `datetime`datetime(2),  " ;
+string sql_create_locus_index_min1  = "locus_index_min ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), `datetime`datetime(2), INDEX index_datetime(`datetime`), " ;
 string sql_create_locus_index_min2  = "index_id INT UNSIGNED  )";
 string sql_create_locus_index_min   = sql_create_table + sql_create_locus_index_min1 + sql_create_locus_index_min2 ;
 
@@ -84,6 +84,23 @@ string sql_create_event     = sql_create_table + sql_create_event1 + sql_create_
 
 
 
+
+string sql_create_staff1    = "staff ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), number VARCHAR(40) NOT NULL, UNIQUE (number), INDEX index_staff(number), " ;
+string sql_create_staff2    = string("") + "tag_id VARCHAR(16), INDEX index_tag_id( tag_id ), Name VARCHAR(40)" + ",lastName VARCHAR(40)" + ", firstName VARCHAR(40)" + ",EnglishName VARCHAR(40) ," ;
+string sql_create_staff3    = string("") + "gender VARCHAR(10)," + "card_id VARCHAR(40)," + "status VARCHAR(40)," + "set_color VARCHAR(10)," + "department VARCHAR(40)," + "jobTitle VARCHAR(40)," +  "type VARCHAR(40),";
+string sql_create_staff4    = string("") + "birthday VARCHAR(10)," + "dateEntry VARCHAR(10)" + ", dateLeave VARCHAR(10)" + ", school VARCHAR(40)" + ", education VARCHAR(10)"
+                              + ", phoneJob VARCHAR(20)" + ", phoneSelf VARCHAR(20)" + ", mail VARCHAR(60)" + ", address TEXT" + ", note TEXT" + ", photo BLOB" + ", exist INT" + ")";
+string sql_create_staff     = sql_create_table + sql_create_staff1 + sql_create_staff2 + sql_create_staff3 + sql_create_staff4 ;
+
+
+
+string sql_create_card_correspond1  = "card_correspond ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), card VARCHAR(24) NOT NULL, INDEX index_card( card ), UNIQUE (card)," ;
+string sql_create_card_correspond2  = "number VARCHAR(40) , status TINYINT, `time`datetime(2) )";
+string sql_create_card_correspond   = sql_create_table + sql_create_card_correspond1 + sql_create_card_correspond2 ;
+
+string sql_create_department_relation1  = "department_relation ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
+string sql_create_department_relation2  = "master VARCHAR(40), slave VARCHAR(40), color VARCHAR(10), isJobTitle TINYINT )";
+string sql_create_department_relation   = sql_create_table + sql_create_department_relation1 + sql_create_department_relation2 ;
 
 
 int list_size = 5 ;
@@ -115,6 +132,9 @@ bool Construct_sql_cmd()
         SQL_ExecuteUpdate( sql_create_locus_index_hour ) ;
         SQL_ExecuteUpdate( sql_create_locus_index_min ) ;
         SQL_ExecuteUpdate( sql_create_event ) ;
+
+        SQL_ExecuteUpdate( sql_create_staff ) ;
+//        SQL_ExecuteUpdate( sql_create_card_correspond ) ;
 
         SQL_Close();
     }
@@ -314,6 +334,9 @@ json Call_SQL_func( string func_name, json func_arg )
 
         } // for
 
+        if ( func_name == "AddStaff" )
+            success = SQL_AddStaff( state, func_arg ) ;
+
         cout << func_name << endl ;
 
         if ( func_name == "GetAnchors" || func_name == "AddListAnchor" )
@@ -322,6 +345,9 @@ json Call_SQL_func( string func_name, json func_arg )
             ret = json_SQL_GetGroups_info( state, result );
         else if ( func_name == "GetMaps" || func_name == "AddListMap" )
             ret = json_SQL_GetMaps( state, result );
+
+        else if ( func_name == "GetStaffs" )
+            ret = json_SQL_GetStaffs( state, result );
 
 
         else if ( func_name == "GetGroup_Anchors" || func_name == "AddListGroup_Anchor" )
@@ -444,6 +470,61 @@ int SQL_AddEvent( Statement *&state, string tag_id, string status, string time )
     string query = "INSERT INTO event VALUES ( '0','" + tag_id + "', '" + status + "', '" +  time + "' );";
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
+
+
+
+int SQL_AddStaff( Statement *&state, json func_arg )
+{
+
+    string number       = func_arg["number"].get<std::string>() ;
+    string tag_id       = func_arg["tag_id"].get<std::string>() ;
+    string Name         = func_arg["Name"].get<std::string>() ;
+    string lastName     = func_arg["lastName"].get<std::string>() ;
+    string firstName    = func_arg["firstName"].get<std::string>() ;
+
+    string EnglishName  = func_arg["EnglishName"].get<std::string>() ;
+    string gender       = func_arg["gender"].get<std::string>() ;
+    string card_id      = func_arg["card_id"].get<std::string>() ;
+    string status       = func_arg["status"].get<std::string>() ;
+    string set_color    = func_arg["set_color"].get<std::string>() ;
+    string department   = func_arg["department"].get<std::string>() ;
+
+    string jobTitle     = func_arg["jobTitle"].get<std::string>() ;
+    string type         = func_arg["type"].get<std::string>() ;
+    string birthday     = func_arg["birthday"].get<std::string>() ;
+    string dateEntry    = func_arg["dateEntry"].get<std::string>() ;
+    string dateLeave    = func_arg["dateLeave"].get<std::string>() ;
+
+    string school       = func_arg["school"].get<std::string>() ;
+    string education    = func_arg["education"].get<std::string>() ;
+    string phoneJob     = func_arg["phoneJob"].get<std::string>() ;
+    string phoneSelf    = func_arg["phoneSelf"].get<std::string>() ;
+    string mail         = func_arg["mail"].get<std::string>() ;
+
+    string address      = func_arg["address"].get<std::string>() ;
+    string note         = func_arg["note"].get<std::string>() ;
+    string photo        = func_arg["photo"].get<std::string>() ;
+    string exist        = func_arg["exist"].get<std::string>() ;
+
+    /*
+    "staff ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), number VARCHAR(40) NOT NULL, UNIQUE (number), INDEX index_staff(number), " ;
+     = "tag_id VARCHAR(16), INDEX index_tag_id( tag_id ), Name VARCHAR(40)" + ",lastName VARCHAR(40)" + ", firstName VARCHAR(40)" + ",EnglishName VARCHAR(40) ," ;
+     = "gender VARCHAR(10)," + "card_id VARCHAR(40)," + "status VARCHAR(40)," + "department VARCHAR(40)," + "jobTitle VARCHAR(40)," +  "type VARCHAR(40),";
+     = "birthday VARCHAR(10)," + "dateEntry VARCHAR(10)" + ", dateLeave VARCHAR(10)" + ", school VARCHAR(40)" + ", education VARCHAR(10)"
+            + ", phoneJob VARCHAR(20)" + ", phoneSelf VARCHAR(20)" + ", mail VARCHAR(60)" + ", address TEXT" + ", note TEXT" + ", photo BLOB" + ", exist INT" + ")";
+    */
+
+    // id, number, tag_id, Name, lastName, firstName, EnglishName, gender, card_id, status, department, jobTitle, type, birthday, photo, note
+
+    string query = string("") + "INSERT INTO staff VALUES ( '0','" + number + "','" + tag_id + "','" +  Name + "','" +  lastName + "','" + firstName  + "','" +
+                   EnglishName + "','" + gender + "','" + card_id + "','" +  status + "','" + set_color + "','" + department + "','" + jobTitle + "','" + type + "','" +
+                   birthday + "','" + dateEntry + "','" + dateLeave + "','" + school + "','" + education + "','" + phoneJob + "','" + phoneSelf + "','" +
+                   mail + "','" + address + "','" + note + "','" + photo + "','" + exist + "' );" ;
+
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+
 
 
 int SQL_OFF_SafeUpdate( Statement *&state )
@@ -660,6 +741,46 @@ json json_SQL_GetMaps( Statement *&state, ResultSet *&result )
     return foo ;
 }
 
+
+json json_SQL_GetStaffs( Statement *&state, ResultSet *&result )
+{
+    json foo;
+    foo["success"] = 0 ;
+    json temp ;
+    string query = "SELECT * FROM staff ORDER BY number;";
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next())
+        {
+
+            string tag_id = result->getString("tag_id");
+            string number = result->getString("number");
+            string Name = result->getString("Name");
+            string department = result->getString("department");
+            string type = result->getString("type");
+            string note = result->getString("note");
+
+            temp["tag_id"] = tag_id;
+            temp["number"] = number;
+            temp["Name"] = Name;
+            temp["department"] = department;
+            temp["type"] = type;
+            temp["note"] = note;
+
+            foo["Values"].push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+    foo["success"] = 1 ;
+    return foo ;
+}
 
 json json_SQL_GetGroup_Anchors( Statement *&state, ResultSet *&result )
 {

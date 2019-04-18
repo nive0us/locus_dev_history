@@ -60,6 +60,9 @@ int SQL_AddLocus( Statement *&state, string tag_id, string x, string y, string g
 int SQL_AddLocus_combine( Statement *&state, string tag_id, string x, string y, string group_id,  string time ) ;
 int SQL_AddEvent( Statement *&state, string tag_id, string status, string time ) ;
 
+int SQL_AddStaff( Statement *&state, json func_arg ) ;
+
+
 
 int SQL_OFF_SafeUpdate( Statement *&state );
 int SQL_DeleteAnchor( Statement *&state, string id );
@@ -73,6 +76,9 @@ int SQL_TruncateTable( Statement *&state, string id ) ;
 json json_SQL_GetAnchors_info( Statement *&state, ResultSet *&result );
 json json_SQL_GetGroups_info( Statement *&state, ResultSet *&result );
 json json_SQL_GetMaps( Statement *&state, ResultSet *&result );
+
+json json_SQL_GetStaffs( Statement *&state, ResultSet *&result );
+
 
 json json_SQL_GetGroup_Anchors( Statement *&state, ResultSet *&result );
 json json_SQL_GetMap_Groups( Statement *&state, ResultSet *&result );
