@@ -21,7 +21,7 @@ string sql_create_table     = "CREATE TABLE IF NOT EXISTS  " ;
 
 string sql_create_locus1    = "locus ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), tag_id VARCHAR(16), " ;
 string sql_create_locus2    = "coordinate_x INT UNSIGNED, coordinate_y INT UNSIGNED, group_id SMALLINT UNSIGNED, `date` date,`time`time(2) )";
-string sql_create_locus     = sql_create_table + sql_create_locus1 + sql_create_locus2 ;
+string sql_create_locus     = sql_create_table + sql_create_locus1 + sql_create_locus2 ; // date and time separated store.
 
 
 string sql_create_map1      = "map_info ( map_id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (map_id), map_name VARCHAR(16), " ;
@@ -57,7 +57,7 @@ string sql_create_tag   = sql_create_table + sql_create_tag1 + sql_create_tag2 ;
 
 string sql_create_locus_combine1    = "locus_combine ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), tag_id VARCHAR(16), " ;
 string sql_create_locus_combine2    = "coordinate_x INT UNSIGNED, coordinate_y INT UNSIGNED, group_id SMALLINT UNSIGNED, `time`datetime(2) )";
-string sql_create_locus_combine     = sql_create_table + sql_create_locus1 + sql_create_locus2 ;
+string sql_create_locus_combine     = sql_create_table + sql_create_locus1 + sql_create_locus2 ; // date and time combined store.
 
 
 
@@ -332,16 +332,27 @@ json Call_SQL_func( string func_name, json func_arg )
 //
 //            else if ( func_name == "DeleteMap" )
 //                success = SQL_DeleteMap( state, func_arg["map_id"] );
+            else if ( func_name == "DeleteDepartment" )
+                success = SQL_DeleteDepartment( state, func_arg[i]["c_id"].get<std::string>() ) ;
+
 
         } // for
 
         if ( func_name == "AddStaff" )
             success = SQL_AddStaff( state, func_arg ) ;
+
         if ( func_name == "AddDepartment" )
         {
             success = SQL_AddDepartment( state, func_arg ) ;
             ret = json_SQL_Return_inserted_id( state, result );
         }
+
+        else if ( func_name == "EditDepartment" )
+        {
+            success = SQL_EditDepartment( state, func_arg ) ;
+        }
+
+
 
         cout << func_name << endl ;
 
@@ -542,21 +553,38 @@ int SQL_AddDepartment( Statement *&state, json func_arg )
     string color        = func_arg["color"].get<std::string>() ;
 //    string exist        = func_arg["exist"].get<std::string>() ;
 
-    /*
-    "staff ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), number VARCHAR(40) NOT NULL, UNIQUE (number), INDEX index_staff(number), " ;
-     = "tag_id VARCHAR(16), INDEX index_tag_id( tag_id ), Name VARCHAR(40)" + ",lastName VARCHAR(40)" + ", firstName VARCHAR(40)" + ",EnglishName VARCHAR(40) ," ;
-     = "gender VARCHAR(10)," + "card_id VARCHAR(40)," + "status VARCHAR(40)," + "department VARCHAR(40)," + "jobTitle VARCHAR(40)," +  "type VARCHAR(40),";
-     = "birthday VARCHAR(10)," + "dateEntry VARCHAR(10)" + ", dateLeave VARCHAR(10)" + ", school VARCHAR(40)" + ", education VARCHAR(10)"
-            + ", phoneJob VARCHAR(20)" + ", phoneSelf VARCHAR(20)" + ", mail VARCHAR(60)" + ", address TEXT" + ", note TEXT" + ", photo BLOB" + ", exist INT" + ")";
-    */
 
-    // id, number, tag_id, Name, lastName, firstName, EnglishName, gender, card_id, status, department, jobTitle, type, birthday, photo, note
-    string query0 = "SET @last_id_in_table = (select count(*) from department_relation );" ;
+    string query0 = "SET @last_id_in_table = (SELECT AUTO_INCREMENT  FROM information_schema.tables WHERE table_name = 'department_relation' AND table_schema = DATABASE() );" ;
     SQL_ExecuteUpdate_single( state, query0 ) ;
-    string query = string("") + "INSERT INTO department_relation VALUES ( '0','" + parent + "','" + p_id + "','" + children + "'," + "@last_id_in_table+1" + ",'" + color + "','" +  "0" + "' );" ;
+    string query = string("") + "INSERT INTO department_relation VALUES ( '0','" + parent + "','" + p_id + "','" + children + "'," + "@last_id_in_table" + ",'" + color + "','" +  "0" + "' );" ;
 
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
+
+
+int SQL_EditDepartment( Statement *&state, json func_arg )
+{
+
+//    string parent       = func_arg["parent"].get<std::string>() ;
+//    string p_id         = func_arg["p_id"].get<std::string>() ;
+    string children     = func_arg["name"].get<std::string>() ;
+    string c_id         = func_arg["c_id"].get<std::string>() ;
+    string color        = func_arg["color"].get<std::string>() ;
+//    string exist        = func_arg["exist"].get<std::string>() ;
+
+
+    string query = string("") + "UPDATE department_relation SET children = '" + children + "', color = '" + color + "' where c_id = '" +  c_id + "' ;" ;
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+int SQL_DeleteDepartment( Statement *&state, string c_id )
+{
+    string query = string("") + "delete from department_relation where c_id = \"" + c_id + "\";";
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
 
 
 
@@ -857,6 +885,7 @@ string Travel_tree( json j_tree, string target, json &ret_json ) // traveling by
 
 string Travel_tree_by_id( json j_tree, string target, json &ret_json )
 {
+    // travel each node , and build the json tree( by recursive ).
 
     for ( int i = 0 ; i < j_tree.size() ; i++ )
     {
@@ -893,7 +922,7 @@ string Travel_tree_by_id( json j_tree, string target, json &ret_json )
 
 //    // if can't not find c_key in the master list, return c_key
 //    cout << "end level:" << target << endl ;
-    cout  << endl ;
+//    cout  << endl ;
     return "" ;
 
 }
@@ -910,7 +939,7 @@ json json_SQL_GetDepartment_relation( Statement *&state, ResultSet *&result )
     try
     {
         result = state->executeQuery(query);
-        while (result->next())
+        while (result->next()) // get each node from DB, and save into the temp json array.
         {
 
             string parent   = result->getString("parent");
