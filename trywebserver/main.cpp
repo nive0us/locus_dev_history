@@ -3526,8 +3526,9 @@ return_ok:
                     stringstream json_part ;
                     json_part << deli_arg ; // char* to stringstream
 //                    cout << "stream:"<< json_part.str() << endl ; // stringstream to string
-
+//                    cout << ":::::" <<endl ;
                     auto arg_from_web = json::parse(json_part.str()); // string to json parser
+//                    cout << "????" << endl ;
 //                    cout << "get_arg from web :" << arg_from_web << endl ;
 
                     //action = arg_from_web["Command_Type"][0].get<std::string>() ;
@@ -3558,6 +3559,7 @@ return_ok:
 
                     json j_arg = arg_from_web["Value"] ;
 
+
                     for ( int i = 0 ; i < function_amount ; i++ )
                     {
                         command_name = arg_from_web["Command_Name"][i].get<std::string>() ;
@@ -3573,7 +3575,7 @@ return_ok:
                 }
                 catch(json::parse_error)
                 {
-                    cout << "parse_error" << endl ;
+                    cout << "parse_error_sql" << endl ;
 
                 }
                 catch(json::type_error)
