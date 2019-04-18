@@ -2388,16 +2388,11 @@ void TCP_thread_Safe( SOCKET m_socket )
             //if (debug_mode)
             //cout << testbuff << endl ;
 
-            //Filename = "C:\\xampp\\htdocs\\Location System\\php\\index.php";
-            //Filename = "/var/www/html/Location System/php/index.php";
-            Filename = "/var/www/html/Location System/html/index.html";
-            //Filename = "C:\\xampp\\htdocs\\Location System\\html\\index.html";
-            std::string html_head = "/var/www/html/Location System/html/";
 
-            //std::string html_head = "C:\\xampp\\htdocs\\Location System\\html\\";
+            Filename = "/var/www/html/Location System/html/index.html";
+            std::string html_head = "/var/www/html/Location System/html/";
             std::string html_root = "/var/www/html/Location System/";
             std::string html_str;
-
 
             cout <<testbuff<< endl  ;
 
@@ -2479,10 +2474,6 @@ void TCP_thread_Safe( SOCKET m_socket )
             }
 
 
-
-
-
-
             else if (strstr((char*)testbuff, "POST /request2 HTTP/1.1") != 0 || strstr((char*)testbuff, "POST /dashboard/request2 HTTP/1.1") != 0)
             {
 
@@ -2504,6 +2495,8 @@ void TCP_thread_Safe( SOCKET m_socket )
                     bytesSent = send(SOCKET_temp, (const char*)binch2, strlen(binch2), 0);
                 }
             }
+
+
             else if (strstr((char*)testbuff, "POST /requestTagList HTTP/1.1") != 0 || strstr((char*)testbuff, "POST /dashboard/requestTagList HTTP/1.1") != 0)
             {
 
@@ -2527,6 +2520,8 @@ void TCP_thread_Safe( SOCKET m_socket )
                     bytesSent = send(SOCKET_temp, (const char*)binch2, strlen(binch2), 0);
                 }
             }
+
+
             else if (strstr((char*)testbuff, "POST /requestImage HTTP/1.1") != 0 || strstr((char*)testbuff, "POST /dashboard/requestImage HTTP/1.1") != 0)
             {
                 string response_html = html_root + "/image/map4 - 1_3.png";
@@ -2546,6 +2541,8 @@ void TCP_thread_Safe( SOCKET m_socket )
                 bytesSent = send(SOCKET_temp, (const char*)binch, u, 0);
                 //bytesSent = send(SOCKET_temp, (const char*)binch2, strlen(binch2), 0);
             }
+
+
             else if (strstr((char*)testbuff, "POST /requestMainAnchorPosition HTTP/1.1") != 0 || strstr((char*)testbuff, "POST /dashboard/requestMainAnchorPosition HTTP/1.1") != 0)
             {
                 if (Main_Anchor_List_count != 0)
@@ -2566,6 +2563,8 @@ void TCP_thread_Safe( SOCKET m_socket )
                     bytesSent = send(SOCKET_temp, (const char*)binch2, strlen(binch2), 0);
                 }
             }
+
+
             else if (strstr((char*)testbuff, "POST /requestAnchorPosition HTTP/1.1") != 0 || strstr((char*)testbuff, "POST /dashboard/requestAnchorPosition HTTP/1.1") != 0)
             {
                 if (Anchor_List_count != 0)
@@ -2588,11 +2587,6 @@ void TCP_thread_Safe( SOCKET m_socket )
             }
 
 
-
-
-
-
-            //else if (strstr((char*)testbuff, "GET /html/") != 0 || strstr((char*)testbuff, "GET /dashboard/html/") != 0)
 
 
             /***********
@@ -2627,87 +2621,7 @@ void TCP_thread_Safe( SOCKET m_socket )
 
             }
 
-            /*
 
-
-                        else if (strstr((char*)testbuff, "GET /image/") != 0 || strstr((char*)testbuff, "GET /dashboard/image/") != 0)
-                        {
-                            //cout << testbuff << endl ;
-
-                            std::string str, response_html;
-                            char* deli_str = "/image/" ;
-                            std::string str_temp = strstr((char*)testbuff, deli_str);
-                            int buff_len = strlen(strstr((char*)testbuff,  deli_str));
-                            int len = buff_len - strlen(strstr((char*)testbuff, " HTTP/1.1"));
-
-                            str = str_temp.substr(strlen(deli_str), len - strlen(deli_str));
-                            response_html = html_root + "image/" + str;
-                            html_temp = response_html.c_str();
-
-                            //html_temp = Filename;
-                            std::ifstream fin(html_temp, std::ios::in | std::ios::binary);
-                            //Filename
-                            while (fin.get(ch))
-                            {
-                                //fin.get(ch); // wrong method!!
-                                binch[u] = ch;
-                                u++;
-                            }
-                            fin.close();
-                            //int temp_len = strlen(binch);
-                            bytesSent = send(SOCKET_temp, (const char*)binch, u, 0);
-                            //bytesSent = send(SOCKET_temp, (const char*)binch2, strlen(binch2), 0);
-                        }
-                        else if (strstr((char*)testbuff, "GET /css/") != 0 || strstr((char*)testbuff, "GET /dashboard/css/") != 0)
-                        {
-                            std::string str, response_html;
-                            char* deli_str = "/css/" ;
-                            std::string str_temp = strstr((char*)testbuff, deli_str);
-                            int buff_len = strlen(strstr((char*)testbuff,  deli_str));
-                            int len = buff_len - strlen(strstr((char*)testbuff, " HTTP/1.1"));
-
-                            str = str_temp.substr(strlen(deli_str), len - strlen(deli_str));
-                            response_html = html_root + "css/" + str ;
-                            html_temp = response_html.c_str();
-
-                            std::ifstream fin(html_temp, std::ios::in | std::ios::binary);
-
-                            while (fin.get(ch))
-                            {
-                                //fin.get(ch); // wrong method!!
-                                binch[u] = ch;
-                                u++;
-                            }
-                            fin.close();
-                            //cout << binch << endl ;
-                            bytesSent = send(SOCKET_temp, (const char*)binch, u, 0);
-                        }
-                        else if (strstr((char*)testbuff, "GET /js/") != 0 || strstr((char*)testbuff, "GET /dashboard/js/") != 0)
-                        {
-                            std::string str, response_html;
-                            char* deli_str = "/js/" ;
-                            std::string str_temp = strstr((char*)testbuff, deli_str);
-                            int buff_len = strlen(strstr((char*)testbuff,  deli_str));
-                            int len = buff_len - strlen(strstr((char*)testbuff, " HTTP/1.1"));
-
-                            str = str_temp.substr(strlen(deli_str), len - strlen(deli_str));
-                            response_html = html_root + "js/" + str;
-                            html_temp = response_html.c_str();
-
-                            std::ifstream fin(html_temp, std::ios::in | std::ios::binary);
-
-                            while (fin.get(ch))
-                            {
-                                //fin.get(ch); // wrong method!!
-                                binch[u] = ch;
-                                u++;
-                            }
-                            fin.close();
-
-                            bytesSent = send(SOCKET_temp, (const char*)binch, u, 0);
-                        }
-
-                        //*/
 
             /************************************************************
             Device condition
@@ -2715,161 +2629,9 @@ void TCP_thread_Safe( SOCKET m_socket )
 
             //************************************************************/
 
-            else if (strstr((char*)testbuff, "POST /Search_interface HTTP/1.1") != 0 || strstr((char*)testbuff, "POST /dashboard/Search_interface HTTP/1.1") != 0)
-            {
-                Update_net_interface() ;
-                if (net_len != 0)
-                {
-
-                    std::string str_terminal = "\",\"";
-                    std::string Network_Interface_ID = "\"", ip = "\"", response_text;
-                    for (size_t i = 0; i < net_len ; i++)
-                    {
-                        if ( i == net_len -1 )
-                            str_terminal = "\"" ;
-                        Network_Interface_ID += std::string(Info[i].Network_Interface_ID) + str_terminal;
-
-                        //ip += IntToString(Info[i].IP_address[0]) +"."+ IntToString(Info[i].IP_address[1]) +"."+
-                        //      IntToString(Info[i].IP_address[2])+"."+ IntToString(Info[i].IP_address[3]) + "\",\"";
-                        ip += std::string(Info[i].IP_address) + str_terminal;
-
-                    }
-                    response_text = "{\"net_interface_id\":[" + Network_Interface_ID + "], \"ip\":[" + ip + "]}";
 
 
-                    binch2 = response_text.c_str();
-                    //char binch2[] = "{\"main_id\":[123,124,125],\"main_x\":[500,200,300],\"main_y\":[100,300,200]}";
-                    bytesSent = send(SOCKET_temp, (const char*)binch2, strlen(binch2), 0);
-                }
-
-            }
-
-
-            else if (strstr((char*)testbuff, "POST /Search_device HTTP/1.1") != 0 || strstr((char*)testbuff, "POST /dashboard/Search_device HTTP/1.1") != 0)
-            {
-                //{"net_interface_id":["enp0s31f6"],"ip":["192.168.1.139"]}
-
-
-                //for test
-                //Update_net_interface() ;
-
-
-                //str_inferface_ip = std::string(Info[1].IP_address) ;
-                str_inferface_ip = "" ;
-                // implement**********************
-                try
-                {
-                    stringstream json_part ;
-                    json_part << deli_arg ;
-                    cout << "stream:"<< json_part.str() << endl ;
-                    auto arg_from_web = json::parse(json_part.str());
-
-                    cout << "get_ip from web :" << arg_from_web << endl ;
-
-                    str_inferface_ip = arg_from_web["net_interface_id"][0].get<std::string>();
-                }
-                catch(json::parse_error)
-                {
-                    cout << "parse_error" << endl ;
-                }
-                //*********************************
-
-
-                dev_count = 0 ;
-                if ( str_inferface_ip != "" )
-                    dev_count = Update_search_dev( str_inferface_ip ) ;
-                if (dev_count != 0)
-                {
-                    json j_response = g_json_multi ;
-                    g_json_multi.clear() ;
-
-                    std::string response_text = j_response.dump();
-                    binch2 = response_text.c_str();
-                    bytesSent = send(SOCKET_temp, (const char*)binch2, strlen(binch2), 0);
-                }
-
-                else
-                {
-                    std::string response_text ;
-                    response_text = "{\"Machine_Number\":[ \"NULL\" ]}";
-                    binch2 = response_text.c_str();
-                    bytesSent = send(SOCKET_temp, (const char*)binch2, strlen(binch2), 0);
-                }
-
-            }
-
-
-            else if (strstr((char*)testbuff, "POST /Read_rf_setting HTTP/1.1") != 0 || strstr((char*)testbuff, "POST /dashboard/Search_interface HTTP/1.1") != 0)
-            {
-                //{"Command_Type":["Read"],"Command_Name":["Connect"],"Value":{"IP_address":["192.168.1.38","192.168.1.90"]}}
-                //{"Command_Type":["Read"],"Command_Name":["RF"],"Value":{"Connected_IP":["192","168","1","37"]}}
-                // implement
-
-
-                string target = "" ;
-                string action = "" ;
-                string command_name = "" ;
-                try
-                {
-                    stringstream json_part ;
-                    json_part << deli_arg ;
-                    cout << "stream:"<< json_part.str() << endl ;
-                    auto arg_from_web = json::parse(json_part.str());
-
-                    cout << "get_arg from web :" << arg_from_web << endl ;
-                    action = arg_from_web["Command_Type"][0].get<std::string>() ;
-                    command_name = arg_from_web["Command_Name"][0].get<std::string>() ;
-
-                    for ( int i = 0 ; i < 4 ; i++)
-                    {
-                        target += arg_from_web["Value"]["Connected_IP"][i].get<std::string>() ;
-                        if ( i < 3 )
-                            target += ".";
-                    }
-                }
-                catch(json::parse_error)
-                {
-                    cout << "parse_error" << endl ;
-                }
-                catch(json::type_error)
-                {
-                    cout << "type_error" << endl ;
-                }
-
-
-
-
-                target_ip = (char*)target.c_str() ;
-                cout << target_ip <<endl ;
-
-
-                cout << "action :" << action << endl ;
-                if ( command_name == "RF" )
-                {
-                    if ( action == "Read" )
-                        Read_RF_setting();
-                    if ( action == "Write" )
-                        Write_RF_setting(); // write successfully return?
-                }
-
-                json j_response;
-                j_response.push_back(g_json_single);
-                g_json_single.clear() ;
-
-
-                std::string response_text = j_response.dump();
-                binch2 = response_text.c_str();
-                bytesSent = send(SOCKET_temp, (const char*)binch2, strlen(binch2), 0);
-
-
-            }
-
-
-
-
-
-
-            else if (strstr((char*)testbuff, "POST /Command HTTP/1.1") != 0 || strstr((char*)testbuff, "POST /dashboard/Search_interface HTTP/1.1") != 0)
+            else if (strstr((char*)testbuff, "POST /Command HTTP/1.1") != 0 )
             {
                 //{"Command_Type":["Read"],"Command_Name":["Connect"],"Value":{"IP_address":["192.168.1.38","192.168.1.90"]}}
                 //{"Command_Type":["Read"],"Command_Name":["RF"],"Value":{"IP_address":["192","168","1","37"]}}
@@ -3053,93 +2815,7 @@ void TCP_thread_Safe( SOCKET m_socket )
 
 
 
-            else if (strstr((char*)testbuff, "POST /Read_net_setting HTTP/1.1") != 0 )
-            {
-                // {"Command_Type":["Read"],"Command_Name":["Connect"],"Value":{"IP_address":["192.168.1.38","192.168.1.90"]}}
-
-                string target = "" ;
-                string action = "" ;
-                try
-                {
-                    stringstream json_part ;
-                    json_part << deli_arg ;
-                    cout << "stream:"<< json_part.str() << endl ;
-                    auto arg_from_web = json::parse(json_part.str());
-
-                    cout << "get_arg from web :" << arg_from_web << endl ;
-                    action = arg_from_web["Command_Type"][0].get<std::string>() ;
-                    int dev_amount = arg_from_web["Value"]["IP_address"].size() ;
-                    for ( int i = 0 ; i < dev_amount ; i++)
-                    {
-                        target = arg_from_web["Value"]["IP_address"][i].get<std::string>() ;
-                        target_ip = (char*)target.c_str() ;
-                        cout << target_ip << endl ;
-                        // call read net set
-                        // call read basic set
-                        Read_Network_setting();
-                        Read_Basic_setting();
-                        // push back
-                        g_json_multi.push_back(g_json_single);
-                        // clear
-                        g_json_single.clear();
-
-                    }
-                }
-                catch(json::parse_error)
-                {
-                    cout << "parse_error" << endl ;
-                }
-                catch(json::type_error)
-                {
-                    cout << "type_error" << endl ;
-                }
-
-
-
-
-                /*
-                Read_Network_setting();
-                Read_Basic_setting();
-
-
-                std::string json_ip = "\"", json_mask = "\"", json_gw = "\"", json_client_ip = "\"", json_cycle_time = "\"", json_active_ID = "\"" ;
-                std::string str_terminal = "\",\"";
-
-                for ( int i = 0 ; i < 4 ; i++ )
-                {
-                    if ( i == 3 )
-                        str_terminal = "\"" ;
-
-                    json_ip         += dev_IP[i]        + str_terminal ;
-                    json_mask       += dev_Mask[i]      + str_terminal ;
-                    json_gw         += dev_GW[i]        + str_terminal ;
-                    json_client_ip  += dev_Client_IP[i] + str_terminal ;
-                }
-
-                json_cycle_time += dev_transmission_cycle_time + "\"" ;
-                json_active_ID  += dev_active_ID + "\"" ;
-
-
-                std::string response_text;
-
-                response_text = "{\"dev_IP\":[" + json_ip + "], \"dev_Mask\":[" + json_mask +
-                                "], \"dev_GW\":[" + json_gw + "], \"dev_Client_IP\":[" + json_client_ip +
-                                "], \"dev_transmission_cycle_time\":[" + dev_transmission_cycle_time +
-                                "], \"dev_active_ID\":[" + dev_active_ID + "]}";
-                */
-
-                //response_text = "{\"rf_channel\":[" + rf_active_ID + "], \"rf_NTM_value\":[" + rf_NTM_value + "], \"rf_PMULT_value\":[" + rf_PMULT_value + "]}";
-                json j_response;
-                j_response.push_back(g_json_multi);
-                g_json_multi.clear() ;
-                std::string response_text = j_response.dump();
-                binch2 = response_text.c_str();
-                bytesSent = send(SOCKET_temp, (const char*)binch2, strlen(binch2), 0);
-
-
-            }
-
-            else if (strstr((char*)testbuff, "POST /Update_fw HTTP/1.1") != 0 || strstr((char*)testbuff, "POST /dashboard/Search_interface HTTP/1.1") != 0)
+            else if (strstr((char*)testbuff, "POST /Update_fw HTTP/1.1") != 0 )
             {
                 Update_FW();
                 std::string ret_val = "" ;
@@ -3161,7 +2837,7 @@ void TCP_thread_Safe( SOCKET m_socket )
 
             }
 
-            else if (strstr((char*)testbuff, "POST /test HTTP/1.1") != 0 || strstr((char*)testbuff, "POST /dashboard/Search_interface HTTP/1.1") != 0)
+            else if (strstr((char*)testbuff, "POST /test HTTP/1.1") != 0 || strstr((char*)testbuff, "POST /dashboard/test HTTP/1.1") != 0)
             {
 
                 std::string response_text;
@@ -3184,10 +2860,7 @@ void TCP_thread_Safe( SOCKET m_socket )
 
             /***********
             dir:
-
-            /js/
-            /css/
-            /image/
+            /js/*.* & /css/*.* & /image/*.*
             /**********/
             else if (strstr((char*)testbuff, "/" ) != 0 )
             {
@@ -3223,10 +2896,6 @@ void TCP_thread_Safe( SOCKET m_socket )
                 int buff_len = strlen(strstr((char*)testbuff,  deli_str));
                 int len = buff_len - strlen(strstr((char*)testbuff, " HTTP/1.1"));
 
-                cout << "BUF_LEN:" << buff_len << endl ;
-                cout << "LEN:" << len << endl ;
-                cout << "STRLEN deli:" << strlen(deli_str) << endl ;
-
                 str = str_temp.substr(strlen(deli_str), len - strlen(deli_str));
                 response_html = html_root + str;
                 html_temp = response_html.c_str();//StringToChar(html_str);
@@ -3246,19 +2915,6 @@ void TCP_thread_Safe( SOCKET m_socket )
 
 
             }
-
-
-            /*
-            get targets' ip , command and command's parameter
-            for( target count ) {
-                send command to target
-                get return value
-                save return value
-
-            }
-
-            //*/
-
 
 
 
