@@ -99,7 +99,7 @@ string sql_create_card_correspond2  = "number VARCHAR(40) , status TINYINT, `tim
 string sql_create_card_correspond   = sql_create_table + sql_create_card_correspond1 + sql_create_card_correspond2 ;
 
 string sql_create_department_relation1  = "department_relation ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
-string sql_create_department_relation2  = "master VARCHAR(40), slave VARCHAR(40), color VARCHAR(10), isJobTitle TINYINT )";
+string sql_create_department_relation2  = "parent VARCHAR(40), children VARCHAR(40), color VARCHAR(10), isJobTitle TINYINT )";
 string sql_create_department_relation   = sql_create_table + sql_create_department_relation1 + sql_create_department_relation2 ;
 
 
@@ -134,6 +134,7 @@ bool Construct_sql_cmd()
         SQL_ExecuteUpdate( sql_create_event ) ;
 
         SQL_ExecuteUpdate( sql_create_staff ) ;
+        SQL_ExecuteUpdate( sql_create_department_relation ) ;
 //        SQL_ExecuteUpdate( sql_create_card_correspond ) ;
 
         SQL_Close();
@@ -336,6 +337,8 @@ json Call_SQL_func( string func_name, json func_arg )
 
         if ( func_name == "AddStaff" )
             success = SQL_AddStaff( state, func_arg ) ;
+        if ( func_name == "AddDepartment" )
+            success = SQL_AddDepartment( state, func_arg ) ;
 
         cout << func_name << endl ;
 
@@ -348,6 +351,8 @@ json Call_SQL_func( string func_name, json func_arg )
 
         else if ( func_name == "GetStaffs" )
             ret = json_SQL_GetStaffs( state, result );
+        else if ( func_name == "GetDepartment_relation" )
+            ret = json_SQL_GetDepartment_relation( state, result );
 
 
         else if ( func_name == "GetGroup_Anchors" || func_name == "AddListGroup_Anchor" )
@@ -520,6 +525,29 @@ int SQL_AddStaff( Statement *&state, json func_arg )
                    EnglishName + "','" + gender + "','" + card_id + "','" +  status + "','" + set_color + "','" + department + "','" + jobTitle + "','" + type + "','" +
                    birthday + "','" + dateEntry + "','" + dateLeave + "','" + school + "','" + education + "','" + phoneJob + "','" + phoneSelf + "','" +
                    mail + "','" + address + "','" + note + "','" + photo + "','" + exist + "' );" ;
+
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+int SQL_AddDepartment( Statement *&state, json func_arg )
+{
+
+    string parent      = func_arg["parent"].get<std::string>() ;
+    string children         = func_arg["children"].get<std::string>() ;
+    string color        = func_arg["color"].get<std::string>() ;
+//    string exist        = func_arg["exist"].get<std::string>() ;
+
+    /*
+    "staff ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), number VARCHAR(40) NOT NULL, UNIQUE (number), INDEX index_staff(number), " ;
+     = "tag_id VARCHAR(16), INDEX index_tag_id( tag_id ), Name VARCHAR(40)" + ",lastName VARCHAR(40)" + ", firstName VARCHAR(40)" + ",EnglishName VARCHAR(40) ," ;
+     = "gender VARCHAR(10)," + "card_id VARCHAR(40)," + "status VARCHAR(40)," + "department VARCHAR(40)," + "jobTitle VARCHAR(40)," +  "type VARCHAR(40),";
+     = "birthday VARCHAR(10)," + "dateEntry VARCHAR(10)" + ", dateLeave VARCHAR(10)" + ", school VARCHAR(40)" + ", education VARCHAR(10)"
+            + ", phoneJob VARCHAR(20)" + ", phoneSelf VARCHAR(20)" + ", mail VARCHAR(60)" + ", address TEXT" + ", note TEXT" + ", photo BLOB" + ", exist INT" + ")";
+    */
+
+    // id, number, tag_id, Name, lastName, firstName, EnglishName, gender, card_id, status, department, jobTitle, type, birthday, photo, note
+
+    string query = string("") + "INSERT INTO department_relation VALUES ( '0','" + parent + "','" + children + "','" +  color + "','" +  "0" + "' );" ;
 
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
@@ -781,6 +809,96 @@ json json_SQL_GetStaffs( Statement *&state, ResultSet *&result )
     foo["success"] = 1 ;
     return foo ;
 }
+
+
+
+
+
+
+string Travel_tree( json j_tree, string target, json &ret_json )
+{
+
+    for ( int i = 0 ; i < j_tree.size() ; i++ )
+    {
+        if ( j_tree[i]["parent"] == target )
+        {
+            json tp ;
+            string key = j_tree[i]["children"].get<std::string>() ;
+            string color = j_tree[i]["color"].get<std::string>() ;
+            cout << key << "/" ;
+            tp["name"] = key;
+            tp["color"] = color ;
+
+            json children ;
+            string ret_v = Travel_tree( j_tree, key, children ) ;
+//            if ( ret_v != "" )
+//            {
+//                tp["name"] = ret_v ;
+                tp["children"] = children ;
+
+//            }
+            ret_json.push_back(tp);
+
+        }
+    }
+
+//    // if can't not find key in the master list, return key
+//    cout << "end level:" << target << endl ;
+    cout  << endl ;
+    return "" ;
+
+}
+
+
+json json_SQL_GetDepartment_relation( Statement *&state, ResultSet *&result )
+{
+    json tree ;
+
+    json foo ;
+    foo["success"] = 0 ;
+    json temp ;
+    string query = "SELECT * FROM department_relation;";
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next())
+        {
+
+            string parent = result->getString("parent");
+            string children = result->getString("children");
+            string color = result->getString("color");
+
+
+            temp["parent"] = parent;
+            temp["children"] = children;
+            temp["color"] = color;
+
+
+            tree.push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+    json ary ;
+    Travel_tree( tree, "", ary ) ;
+    foo["Values"] = ary ;
+    foo["success"] = 1 ;
+    return foo ;
+}
+
+
+
+
+
+
+
+
+
 
 json json_SQL_GetGroup_Anchors( Statement *&state, ResultSet *&result )
 {
@@ -2044,9 +2162,9 @@ void SQL_Update_locus_index_hour( string datetime )
         result = state->executeQuery(search_index);
 
 
-        if ( !result->next() )
+        if ( !result->next() ) // this hour not record yet,so build it
         {
-            string search_index = "select * from locus_index_min order by id desc limit 0,1 ;";
+            string search_index = "select * from locus_index_hour order by id desc limit 0,1 ;";
             result = state->executeQuery(search_index);
             string previous_index = "" ;
 

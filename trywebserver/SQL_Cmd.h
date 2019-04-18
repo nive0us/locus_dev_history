@@ -61,7 +61,7 @@ int SQL_AddLocus_combine( Statement *&state, string tag_id, string x, string y, 
 int SQL_AddEvent( Statement *&state, string tag_id, string status, string time ) ;
 
 int SQL_AddStaff( Statement *&state, json func_arg ) ;
-
+int SQL_AddDepartment( Statement *&state, json func_arg ) ;
 
 
 int SQL_OFF_SafeUpdate( Statement *&state );
@@ -78,7 +78,7 @@ json json_SQL_GetGroups_info( Statement *&state, ResultSet *&result );
 json json_SQL_GetMaps( Statement *&state, ResultSet *&result );
 
 json json_SQL_GetStaffs( Statement *&state, ResultSet *&result );
-
+json json_SQL_GetDepartment_relation( Statement *&state, ResultSet *&result );
 
 json json_SQL_GetGroup_Anchors( Statement *&state, ResultSet *&result );
 json json_SQL_GetMap_Groups( Statement *&state, ResultSet *&result );
