@@ -61,9 +61,24 @@ int SQL_AddLocus_combine( Statement *&state, string tag_id, string x, string y, 
 int SQL_AddEvent( Statement *&state, string tag_id, string status, string time ) ;
 
 int SQL_AddStaff( Statement *&state, json func_arg ) ;
+int SQL_DeleteStaff( Statement *&state, string number ) ;
+
 int SQL_AddDepartment( Statement *&state, json func_arg ) ;
 int SQL_EditDepartment( Statement *&state, json func_arg ) ;
 int SQL_DeleteDepartment( Statement *&state, string c_id ) ;
+
+int SQL_AddJobTitle( Statement *&state, json func_arg ) ;
+int SQL_EditJobTitle( Statement *&state, json func_arg ) ;
+int SQL_DeleteJobTitle( Statement *&state, string c_id ) ;
+
+
+
+
+int SQL_multiEdit_StaffDepartment( Statement *&state, string number, string department ) ;
+int SQL_multiEdit_StaffType( Statement *&state, string number, string type ) ;
+int SQL_multiEdit_StaffJobTitle( Statement *&state, string number, string jobTitle ) ;
+int SQL_multiEdit_StaffSetColor( Statement *&state, string number, string set_color ) ;
+
 
 
 
@@ -80,9 +95,14 @@ json json_SQL_GetAnchors_info( Statement *&state, ResultSet *&result );
 json json_SQL_GetGroups_info( Statement *&state, ResultSet *&result );
 json json_SQL_GetMaps( Statement *&state, ResultSet *&result );
 
+
+json json_SQL_Get_One_Staff( Statement *&state, ResultSet *&result , json func_arg );
 json json_SQL_GetStaffs( Statement *&state, ResultSet *&result );
 json json_SQL_GetDepartment_relation( Statement *&state, ResultSet *&result );
-json json_SQL_Return_inserted_id( Statement *&state, ResultSet *&result );
+json json_SQL_GetJobTitle_relation( Statement *&state, ResultSet *&result );
+
+json json_SQL_Return_inserted_dept_id( Statement *&state, ResultSet *&result );
+json json_SQL_Return_inserted_job_id( Statement *&state, ResultSet *&result );
 
 
 json json_SQL_GetGroup_Anchors( Statement *&state, ResultSet *&result );
@@ -104,9 +124,9 @@ void SQL_Update_locus_index_hour_min( string datetime ) ;
 string Str2Time_BackDate( string date );
 string Str2Time_ShiftDate( string date );
 string Str2Time_ShiftHour( string date ) ;
-string Str2Time_Hour( string date , string time );
+string Str2Time_Hour( string date, string time );
 string Str2Time_ShiftMin( string date ) ;
-string Str2Time_Min( string date , string time );
+string Str2Time_Min( string date, string time );
 
 string date_part( string date );
 string time_part( string date );

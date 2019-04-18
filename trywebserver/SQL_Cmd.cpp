@@ -89,7 +89,8 @@ string sql_create_staff1    = "staff ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, 
 string sql_create_staff2    = string("") + "tag_id VARCHAR(16), INDEX index_tag_id( tag_id ), Name VARCHAR(40)" + ",lastName VARCHAR(40)" + ", firstName VARCHAR(40)" + ",EnglishName VARCHAR(40) ," ;
 string sql_create_staff3    = string("") + "gender VARCHAR(10)," + "card_id VARCHAR(40)," + "status VARCHAR(40)," + "set_color VARCHAR(10)," + "department VARCHAR(40)," + "jobTitle VARCHAR(40)," +  "type VARCHAR(40),";
 string sql_create_staff4    = string("") + "birthday VARCHAR(10)," + "dateEntry VARCHAR(10)" + ", dateLeave VARCHAR(10)" + ", school VARCHAR(40)" + ", education VARCHAR(10)"
-                              + ", phoneJob VARCHAR(20)" + ", phoneSelf VARCHAR(20)" + ", mail VARCHAR(60)" + ", address TEXT" + ", note TEXT" + ", photo BLOB" + ", exist INT" + ")";
+                              + ", phoneJob VARCHAR(20)" + ", phoneSelf VARCHAR(20)" + ", mail VARCHAR(60)" + ", address TEXT" + ", note TEXT" + ", photo BLOB" + ", exist INT"
+                              + ", grade VARCHAR(20)"  +  ", tech_grade VARCHAR(20)" + ")";
 string sql_create_staff     = sql_create_table + sql_create_staff1 + sql_create_staff2 + sql_create_staff3 + sql_create_staff4 ;
 
 
@@ -99,8 +100,15 @@ string sql_create_card_correspond2  = "number VARCHAR(40) , status TINYINT, `tim
 string sql_create_card_correspond   = sql_create_table + sql_create_card_correspond1 + sql_create_card_correspond2 ;
 
 string sql_create_department_relation1  = "department_relation ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
-string sql_create_department_relation2  = "parent VARCHAR(40), p_id INT UNSIGNED, children VARCHAR(40), c_id INT UNSIGNED, color VARCHAR(10), isJobTitle TINYINT )";
+string sql_create_department_relation2  = "parent VARCHAR(40), p_id INT UNSIGNED, children VARCHAR(40), c_id INT UNSIGNED, color VARCHAR(10) )";
 string sql_create_department_relation   = sql_create_table + sql_create_department_relation1 + sql_create_department_relation2 ;
+
+
+
+
+string sql_create_jobTitle_relation1  = "jobTitle_relation ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
+string sql_create_jobTitle_relation2  = "parent VARCHAR(40), p_id INT UNSIGNED, children VARCHAR(40), c_id INT UNSIGNED, color VARCHAR(10) )";
+string sql_create_jobTitle_relation   = sql_create_table + sql_create_jobTitle_relation1 + sql_create_jobTitle_relation2 ;
 
 
 int list_size = 5 ;
@@ -135,6 +143,7 @@ bool Construct_sql_cmd()
 
         SQL_ExecuteUpdate( sql_create_staff ) ;
         SQL_ExecuteUpdate( sql_create_department_relation ) ;
+        SQL_ExecuteUpdate( sql_create_jobTitle_relation ) ;
 //        SQL_ExecuteUpdate( sql_create_card_correspond ) ;
 
         SQL_Close();
@@ -332,24 +341,70 @@ json Call_SQL_func( string func_name, json func_arg )
 //
 //            else if ( func_name == "DeleteMap" )
 //                success = SQL_DeleteMap( state, func_arg["map_id"] );
+
+            else if ( func_name == "AddStaff" )
+                success = SQL_AddStaff( state, func_arg[i] ) ;
+            else if ( func_name == "AddDepartment" )
+            {
+                success = SQL_AddDepartment( state, func_arg[i] ) ;
+                ret = json_SQL_Return_inserted_dept_id( state, result );
+            }
+            else if ( func_name == "AddJobTitle" )
+            {
+                success = SQL_AddJobTitle( state, func_arg[i] ) ;
+                ret = json_SQL_Return_inserted_job_id( state, result );
+            }
+
+
             else if ( func_name == "DeleteDepartment" )
                 success = SQL_DeleteDepartment( state, func_arg[i]["c_id"].get<std::string>() ) ;
+            else if ( func_name == "DeleteJobTitle" )
+                success = SQL_DeleteJobTitle( state, func_arg[i]["c_id"].get<std::string>() ) ;
+            else if ( func_name == "DeleteStaff" )
+                success = SQL_DeleteStaff( state, func_arg[i]["number"].get<std::string>() ) ;
 
+
+            else if ( func_name == "multiEdit_StaffDepartment")
+                success = SQL_multiEdit_StaffDepartment( state, func_arg[i]["number"].get<std::string>(), func_arg[i]["department"].get<std::string>() ) ;
+
+            else if ( func_name == "multiEdit_StaffType")
+                success = SQL_multiEdit_StaffType( state, func_arg[i]["number"].get<std::string>(), func_arg[i]["type"].get<std::string>() ) ;
+
+            else if ( func_name == "multiEdit_StaffJobTitle")
+                success = SQL_multiEdit_StaffJobTitle( state, func_arg[i]["number"].get<std::string>(), func_arg[i]["jobTitle"].get<std::string>() ) ;
+
+            else if ( func_name == "multiEdit_StaffSetColor")
+                success = SQL_multiEdit_StaffSetColor( state, func_arg[i]["number"].get<std::string>(), func_arg[i]["set_color"].get<std::string>() ) ;
 
         } // for
 
-        if ( func_name == "AddStaff" )
-            success = SQL_AddStaff( state, func_arg ) ;
 
-        if ( func_name == "AddDepartment" )
-        {
-            success = SQL_AddDepartment( state, func_arg ) ;
-            ret = json_SQL_Return_inserted_id( state, result );
-        }
+//        if ( func_name == "AddStaff" )
+//            success = SQL_AddStaff( state, func_arg ) ;
 
-        else if ( func_name == "EditDepartment" )
+
+//        if ( func_name == "AddDepartment" )
+//        {
+//            success = SQL_AddDepartment( state, func_arg ) ;
+//            ret = json_SQL_Return_inserted_dept_id( state, result );
+//        }
+//
+//        else if ( func_name == "AddJobTitle" )
+//        {
+//            success = SQL_AddDepartment( state, func_arg ) ;
+//            ret = json_SQL_Return_inserted_job_id( state, result );
+//        }
+
+
+
+        if ( func_name == "EditDepartment" )
         {
             success = SQL_EditDepartment( state, func_arg ) ;
+        }
+
+        else if ( func_name == "EditJobTitle" )
+        {
+            success = SQL_EditJobTitle( state, func_arg ) ;
         }
 
 
@@ -363,10 +418,15 @@ json Call_SQL_func( string func_name, json func_arg )
         else if ( func_name == "GetMaps" || func_name == "AddListMap" )
             ret = json_SQL_GetMaps( state, result );
 
+
+        else if ( func_name == "GetOneStaff" )
+            ret = json_SQL_Get_One_Staff( state, result, func_arg ) ;
         else if ( func_name == "GetStaffs" )
             ret = json_SQL_GetStaffs( state, result );
         else if ( func_name == "GetDepartment_relation" )
             ret = json_SQL_GetDepartment_relation( state, result );
+        else if ( func_name == "GetJobTitle_relation" )
+            ret = json_SQL_GetJobTitle_relation( state, result );
 
 
         else if ( func_name == "GetGroup_Anchors" || func_name == "AddListGroup_Anchor" )
@@ -492,6 +552,36 @@ int SQL_AddEvent( Statement *&state, string tag_id, string status, string time )
 
 
 
+
+int SQL_multiEdit_StaffDepartment( Statement *&state, string number, string department )
+{
+    string query = "UPDATE staff SET department = '" + department + "' where number = '" +  number + "' ;" ;
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+int SQL_multiEdit_StaffType( Statement *&state, string number, string type )
+{
+    string query = "UPDATE staff SET type = '" + type + "' where number = '" +  number + "' ;" ;
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+int SQL_multiEdit_StaffJobTitle( Statement *&state, string number, string jobTitle )
+{
+    string query = "UPDATE staff SET jobTitle = '" + jobTitle + "' where number = '" +  number + "' ;" ;
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+int SQL_multiEdit_StaffSetColor( Statement *&state, string number, string set_color )
+{
+    string query = "UPDATE staff SET set_color = '" + set_color + "' where number = '" +  number + "' ;" ;
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+
 int SQL_AddStaff( Statement *&state, json func_arg )
 {
 
@@ -525,6 +615,9 @@ int SQL_AddStaff( Statement *&state, json func_arg )
     string photo        = func_arg["photo"].get<std::string>() ;
     string exist        = func_arg["exist"].get<std::string>() ;
 
+    string grade        = func_arg["grade"].get<std::string>() ;
+    string tech_grade   = func_arg["tech_grade"].get<std::string>() ;
+
     /*
     "staff ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), number VARCHAR(40) NOT NULL, UNIQUE (number), INDEX index_staff(number), " ;
      = "tag_id VARCHAR(16), INDEX index_tag_id( tag_id ), Name VARCHAR(40)" + ",lastName VARCHAR(40)" + ", firstName VARCHAR(40)" + ",EnglishName VARCHAR(40) ," ;
@@ -538,7 +631,7 @@ int SQL_AddStaff( Statement *&state, json func_arg )
     string query = string("") + "INSERT INTO staff VALUES ( '0','" + number + "','" + tag_id + "','" +  Name + "','" +  lastName + "','" + firstName  + "','" +
                    EnglishName + "','" + gender + "','" + card_id + "','" +  status + "','" + set_color + "','" + department + "','" + jobTitle + "','" + type + "','" +
                    birthday + "','" + dateEntry + "','" + dateLeave + "','" + school + "','" + education + "','" + phoneJob + "','" + phoneSelf + "','" +
-                   mail + "','" + address + "','" + note + "','" + photo + "','" + exist + "' );" ;
+                   mail + "','" + address + "','" + note + "','" + photo + "','" + exist + "','" + grade + "','" + tech_grade + "' );" ;
 
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
@@ -556,7 +649,26 @@ int SQL_AddDepartment( Statement *&state, json func_arg )
 
     string query0 = "SET @last_id_in_table = (SELECT AUTO_INCREMENT  FROM information_schema.tables WHERE table_name = 'department_relation' AND table_schema = DATABASE() );" ;
     SQL_ExecuteUpdate_single( state, query0 ) ;
-    string query = string("") + "INSERT INTO department_relation VALUES ( '0','" + parent + "','" + p_id + "','" + children + "'," + "@last_id_in_table" + ",'" + color + "','" +  "0" + "' );" ;
+    string query = string("") + "INSERT INTO department_relation VALUES ( '0','" + parent + "','" + p_id + "','" + children + "'," + "@last_id_in_table" + ",'" + color + "' );" ;
+
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+
+int SQL_AddJobTitle( Statement *&state, json func_arg )
+{
+
+    string parent       = func_arg["parent"].get<std::string>() ;
+    string p_id         = func_arg["p_id"].get<std::string>() ;
+    string children     = func_arg["children"].get<std::string>() ;
+//    string c_id         = func_arg["c_id"].get<std::string>() ;
+    string color        = func_arg["color"].get<std::string>() ;
+//    string exist        = func_arg["exist"].get<std::string>() ;
+
+
+    string query0 = "SET @last_id_in_table = (SELECT AUTO_INCREMENT  FROM information_schema.tables WHERE table_name = 'jobTitle_relation' AND table_schema = DATABASE() );" ;
+    SQL_ExecuteUpdate_single( state, query0 ) ;
+    string query = string("") + "INSERT INTO jobTitle_relation VALUES ( '0','" + parent + "','" + p_id + "','" + children + "'," + "@last_id_in_table" + ",'" + color + "' );" ;
 
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
@@ -578,6 +690,22 @@ int SQL_EditDepartment( Statement *&state, json func_arg )
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
+int SQL_EditJobTitle( Statement *&state, json func_arg )
+{
+
+//    string parent       = func_arg["parent"].get<std::string>() ;
+//    string p_id         = func_arg["p_id"].get<std::string>() ;
+    string children     = func_arg["name"].get<std::string>() ;
+    string c_id         = func_arg["c_id"].get<std::string>() ;
+    string color        = func_arg["color"].get<std::string>() ;
+//    string exist        = func_arg["exist"].get<std::string>() ;
+
+
+    string query = string("") + "UPDATE jobTitle_relation SET children = '" + children + "', color = '" + color + "' where c_id = '" +  c_id + "' ;" ;
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
 int SQL_DeleteDepartment( Statement *&state, string c_id )
 {
     string query = string("") + "delete from department_relation where c_id = \"" + c_id + "\";";
@@ -585,7 +713,19 @@ int SQL_DeleteDepartment( Statement *&state, string c_id )
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
+int SQL_DeleteJobTitle( Statement *&state, string c_id )
+{
+    string query = string("") + "delete from jobTitle_relation where c_id = \"" + c_id + "\";";
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
 
+int SQL_DeleteStaff( Statement *&state, string number )
+{
+    string query = string("") + "delete from staff where number = \"" + number + "\";";
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
 
 
 
@@ -804,6 +944,104 @@ json json_SQL_GetMaps( Statement *&state, ResultSet *&result )
 }
 
 
+json json_SQL_Get_One_Staff( Statement *&state, ResultSet *&result, json func_arg )
+{
+    json foo;
+    foo["success"] = 0 ;
+    json temp ;
+    string target = func_arg["number"].get<std::string>() ;
+    string query = "SELECT * FROM staff where number = '" + target + "' ;";
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next())
+        {
+
+            string tag_id = result->getString("tag_id");
+            string number = result->getString("number");
+            string Name = result->getString("Name");
+            string department = result->getString("department");
+            string type = result->getString("type");
+            string note = result->getString("note");
+
+            string lastName = result->getString("lastName");
+            string firstName = result->getString("firstName");
+            string EnglishName = result->getString("EnglishName");
+            string gender = result->getString("gender");
+            string card_id = result->getString("card_id");
+
+            string status = result->getString("status");
+            string set_color = result->getString("set_color");
+            string jobTitle = result->getString("jobTitle");
+            string birthday = result->getString("birthday");
+
+            string dateEntry = result->getString("dateEntry");
+            string dateLeave = result->getString("dateLeave");
+            string school = result->getString("school");
+            string education = result->getString("education");
+
+            string phoneJob = result->getString("phoneJob");
+            string phoneSelf = result->getString("phoneSelf");
+            string mail = result->getString("mail");
+
+            string address = result->getString("address");
+            string photo = result->getString("photo");
+            string exist = result->getString("exist");
+            string grade = result->getString("grade");
+            string tech_grade = result->getString("tech_grade");
+
+
+            temp["tag_id"] = tag_id;
+            temp["number"] = number;
+            temp["Name"] = Name;
+            temp["department"] = department;
+            temp["type"] = type;
+            temp["note"] = note;
+
+            temp["lastName"] = lastName;
+            temp["firstName"] = firstName;
+            temp["EnglishName"] = EnglishName;
+            temp["gender"] = gender;
+            temp["card_id"] = card_id;
+
+            temp["status"] = status;
+            temp["set_color"] = set_color;
+            temp["jobTitle"] = jobTitle;
+            temp["birthday"] = birthday;
+
+            temp["dateEntry"] = dateEntry;
+            temp["dateLeave"] = dateLeave;
+            temp["school"] = school;
+            temp["education"] = education;
+
+            temp["phoneJob"] = phoneJob;
+            temp["phoneSelf"] = phoneSelf;
+            temp["mail"] = mail;
+
+            temp["address"] = address;
+            temp["photo"] = photo;
+            temp["exist"] = exist;
+            temp["grade"] = grade;
+            temp["tech_grade"] = tech_grade;
+
+
+            foo["Values"].push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+    foo["success"] = 1 ;
+    return foo ;
+}
+
+
+
+
 json json_SQL_GetStaffs( Statement *&state, ResultSet *&result )
 {
     json foo;
@@ -974,8 +1212,54 @@ json json_SQL_GetDepartment_relation( Statement *&state, ResultSet *&result )
     return foo ;
 }
 
+json json_SQL_GetJobTitle_relation( Statement *&state, ResultSet *&result )
+{
+    json tree ;
 
-json json_SQL_Return_inserted_id( Statement *&state, ResultSet *&result )
+    json foo ;
+    foo["success"] = 0 ;
+    json temp ;
+    string query = "SELECT * FROM jobTitle_relation;";
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next()) // get each node from DB, and save into the temp json array.
+        {
+
+            string parent   = result->getString("parent");
+            string p_id     = result->getString("p_id");
+            string children = result->getString("children");
+            string c_id     = result->getString("c_id");
+            string color    = result->getString("color");
+
+
+            temp["parent"]      = parent;
+            temp["p_id"]        = p_id;
+            temp["children"]    = children;
+            temp["c_id"]        = c_id;
+            temp["color"]       = color;
+
+
+            tree.push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+    json ary ;
+//    Travel_tree( tree, "", ary ) ;
+    Travel_tree_by_id( tree, "0", ary ) ;
+    foo["Values"] = ary ;
+    foo["success"] = 1 ;
+    return foo ;
+}
+
+
+json json_SQL_Return_inserted_dept_id( Statement *&state, ResultSet *&result )
 {
     json tree ;
 
@@ -1023,6 +1307,52 @@ json json_SQL_Return_inserted_id( Statement *&state, ResultSet *&result )
 }
 
 
+json json_SQL_Return_inserted_job_id( Statement *&state, ResultSet *&result )
+{
+    json tree ;
+
+    json foo ;
+    foo["success"] = 0 ;
+    json temp ;
+    string query = "select c_id from jobTitle_relation order by id desc limit 0,1;";
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next())
+        {
+
+//            string parent   = result->getString("parent");
+//            string p_id     = result->getString("p_id");
+//            string children = result->getString("children");
+            string c_id     = result->getString("c_id");
+//            string color    = result->getString("color");
+
+            temp["c_id"]        = c_id;
+//            temp["parent"]      = parent;
+//            temp["p_id"]        = p_id;
+//            temp["children"]    = children;
+//
+//            temp["color"]       = color;
+
+            tree = temp ;
+//            tree.push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+//    json ary ;
+//    Travel_tree( tree, "", ary ) ;
+//    Travel_tree_by_id( tree, "0", ary ) ;
+//    foo["Values"] = ary ;
+    foo["Values"] = tree ;
+    foo["success"] = 1 ;
+    return foo ;
+}
 
 
 
