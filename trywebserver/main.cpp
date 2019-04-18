@@ -3,6 +3,7 @@
 #include <ifaddrs.h>
 #include <arpa/inet.h>
 
+//*****custom*******
 #include <TCP.h>
 #include <UDP.h>
 #include <Comport.h>
@@ -11,6 +12,8 @@
 #include "CRC32.h"
 #include "json.hpp"
 #include "Cmd.h"
+#include "SQL_Cmd.h"
+//*****************/
 
 #include <stdio.h>
 #include <iostream>
@@ -36,7 +39,7 @@
 // include from .h
 
 //
-vector<string> list;
+vector<string> port_list;
 using json = nlohmann::json;
 json g_json_single ;
 json g_json_multi ;
@@ -176,7 +179,7 @@ unsigned char* MASK_temp = new unsigned char[5];
 unsigned char* CLIENT_IP_temp = new unsigned char[5];
 volatile long Mouse_X = 0, Mouse_Y = 0,point_count=0,point_record_count = 0, point_record_count_temp = 0, point_count_temp = 0, status_record_count_temp=0;
 unsigned int tag_list_height = 0,alarm_list_width=0,status_window_height = 0;
-bool openserver_flag = false;
+volatile bool openserver_flag = false;
 bool Signal_server_flag = false;
 bool Inventory_server_flag = false;
 bool Anchor_Display_flag = true;
@@ -195,8 +198,6 @@ unsigned int request_alarm_count = 0;
 unsigned char **allconn_temp = NULL;
 
 
-std::string LongToString(long value);
-std::string IntToString(int value);
 
 //**********************************************
 rfid::Network_Interface_Info* Info ;
@@ -1883,7 +1884,7 @@ bool init_server()
     printf("bind failed1:%x\n", retVal);
     if ( retVal == SOCKET_ERROR )
     {
-        printf("Failed bind:%d\n", errno);
+        printf("Failed bind from locus:%d\n", errno);
         return false;
     }
     int flag = listen(sockSrv, 128);
@@ -1916,7 +1917,7 @@ void start_server()
         //printf("failed:%02d\n", errno);
         if (sockConn == SOCKET_ERROR)
         {
-            printf("Accept failed:%02d\n", errno);
+            printf("Accept failed from locus:%02d\n", errno);
             break;
         }
 
@@ -1953,23 +1954,126 @@ void Lanuch_Server()
 
 
 
-
-
-std::string LongToString(long value)
+void SQL_Group_init()
 {
-    std::stringstream stringstream;
-    stringstream << value;
-    return stringstream.str();
+    delete[] Init_Group_Main_Anchor_List;
+    delete[] Init_Group_Anchor_List;
+    Init_Group_Main_Anchor_List = NULL;
+    Init_Group_Anchor_List = NULL;
+    Init_Group_Main_Anchor_List_count = 0;
+    Init_Group_Anchor_List_count = 0;
+
+
+    SQL_Open();
+    string query = "select G.group_id, G.main_anchor_id, G_A.anchor_id from  group_anchors G_A,  group_info G where G_A.group_id = G.group_id ;";
+    try
+    {
+        g_result = g_state->executeQuery(query);
+
+        g_result->last(); //— jump coursor to last
+        Init_Group_Anchor_List_count = g_result->getRow(); //— row no.
+        g_result->beforeFirst(); //— re jump to very before first
+        cout << Init_Group_Anchor_List_count << endl ;
+
+        Init_Group_Main_Anchor_List = new Main_Anchor_Message[Main_Anchor_List_count];
+        Init_Group_Anchor_List = new Anchor_Message[Init_Group_Anchor_List_count];
+
+        int init_count = 0;
+        while (g_result->next())
+        {
+            string group_id = g_result->getString("group_id");
+            string main_anchor_id = g_result->getString("main_anchor_id");
+            string anchor_id = g_result->getString("anchor_id");
+
+            long temp_group = std::atoi(group_id.c_str());
+            long temp_main_anchor = std::atoi(main_anchor_id.c_str());
+            long temp_anchor = std::atoi(anchor_id.c_str());
+            Init_Group_Anchor_List[init_count].item = temp_group;
+            Init_Group_Anchor_List[init_count].main_group = temp_main_anchor;
+            Init_Group_Anchor_List[init_count].id = temp_anchor;
+            for (size_t i = 0; i < Anchor_List_count; i++)
+            {
+                if (Anchor_List[i].id == Init_Group_Anchor_List[init_count].id)
+                {
+                    cout << "main an id:" <<Anchor_List[i].id << endl ;
+                    Init_Group_Anchor_List[init_count].x = Anchor_List[i].point.x * Map_Scale;
+                    Init_Group_Anchor_List[init_count].y = Anchor_List[i].point.y * Map_Scale;
+                }
+            }
+            init_count++;
+
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+    }
+
+    for (size_t i = 0; i < Main_Anchor_List_count; i++)
+    {
+        Init_Group_Main_Anchor_List[i].id = Main_Anchor_List[i].id;
+        Init_Group_Main_Anchor_List[i].x = Main_Anchor_List[i].point.x * Map_Scale;
+        Init_Group_Main_Anchor_List[i].y = Main_Anchor_List[i].point.y * Map_Scale;
+        cout << Init_Group_Main_Anchor_List[i].id << "," << Init_Group_Main_Anchor_List[i].x << "," << Init_Group_Main_Anchor_List[i].y<< endl ;
+        Init_Group_Main_Anchor_List_count++;
+    }
+
+
+    SQL_Close();
 }
 
-std::string IntToString(int value)
+
+volatile bool _SQL_flag = false ;
+volatile bool isPreSet = false ;
+volatile bool _using_SQL()
 {
-    std::stringstream stringstream;
-    stringstream << value;
-    return stringstream.str();
+    std::string line;
+    std::ifstream inFile;
+    string ini_file = "SQL.ini" ;
+    inFile.open( ini_file );
+    int line_count = 0 ;
+    while (getline(inFile, line))
+    {
+        if (line == "")
+            break;
+        line_count++;
+    }
+    inFile.close();
+
+    int init_count = 0;
+    inFile.open( ini_file );
+
+    int ret_val = 0 ;
+    while (getline(inFile, line))
+    {
+        if (line == "")
+            break;
+        std::string::size_type pos_an = line.find(':');
+
+        std::string f_key = line.substr(0, (pos_an));
+        std::string f_value = line.substr(pos_an + 1, line.length());
+
+        ret_val = atoi(f_value.c_str()) ;
+        cout << "key :" << f_key << ", f_value :" << f_value << endl ;
+
+
+        init_count++;
+    }
+    inFile.close();
+
+
+    cout << ret_val << endl ;
+    if ( ret_val == 1 )
+    {
+        _SQL_flag = true ;
+        return true ;
+    }
+    else
+    {
+        _SQL_flag = false ;
+        return false ;
+    }
 }
-
-
 
 
 void Init_Group_List(void)
@@ -2016,7 +2120,7 @@ void Init_Group_List(void)
         {
             if (Anchor_List[i].id == Init_Group_Anchor_List[init_count].id)
             {
-                cout << "an id:" <<Anchor_List[i].id << endl ;
+//                cout << "an id:" <<Anchor_List[i].id << endl ;
                 Init_Group_Anchor_List[init_count].x = Anchor_List[i].point.x * Map_Scale;
                 Init_Group_Anchor_List[init_count].y = Anchor_List[i].point.y * Map_Scale;
             }
@@ -2027,16 +2131,98 @@ void Init_Group_List(void)
     inFile.close();
 
 
-    cout << "main anchor list :" <<endl ;
+//    cout << "main anchor list :" <<endl ;
 
     for (size_t i = 0; i < Main_Anchor_List_count; i++)
     {
         Init_Group_Main_Anchor_List[i].id = Main_Anchor_List[i].id;
         Init_Group_Main_Anchor_List[i].x = Main_Anchor_List[i].point.x * Map_Scale;
         Init_Group_Main_Anchor_List[i].y = Main_Anchor_List[i].point.y * Map_Scale;
-        cout << Init_Group_Main_Anchor_List[i].id << endl ;
+//        cout << Init_Group_Main_Anchor_List[i].id << endl ;
         Init_Group_Main_Anchor_List_count++;
     }
+}
+
+
+void SQL_Anchors_init()
+{
+    delete[] Anchor_List;
+    delete[] Main_Anchor_List;
+
+    Anchor_List_count = 0;
+    Main_Anchor_List_count = 0;
+    int init_count = 0;
+
+    SQL_Open();
+    string query = "select * from anchor_info where anchor_type = \"main\" ;";
+    string query2 = "select * from anchor_info where anchor_type != \"main\" ;";
+    try
+    {
+
+        // Load main anchor_info
+        g_result = g_state->executeQuery(query);
+
+        g_result->last(); //— jump coursor to last
+        Main_Anchor_List_count = g_result->getRow(); //— row no.
+        g_result->beforeFirst(); //— re jump to very before first
+
+        Main_Anchor_List = new Anchor_info[Main_Anchor_List_count];
+
+        int init_count = 0;
+        while (g_result->next())
+        {
+            string anchor_id = g_result->getString("anchor_id");
+            string set_x = g_result->getString("set_x");
+            string set_y = g_result->getString("set_y");
+
+            int an = std::atoi(anchor_id.c_str());
+            int x = std::atoi(set_x.c_str());
+            int y = std::atoi(set_y.c_str());
+            Main_Anchor_List[init_count].id = an;
+            Main_Anchor_List[init_count].point.x = x;
+            Main_Anchor_List[init_count].point.y = y;
+            cout << "sql main an :" << an << "," <<  x <<"," << y << endl ;
+
+            init_count++;
+        } // while
+
+
+
+        // Load anchor_info
+        g_result = g_state->executeQuery(query2);
+
+        g_result->last(); //— jump coursor to last
+        Anchor_List_count = g_result->getRow(); //— row no.
+        g_result->beforeFirst(); //— re jump to very before first
+        cout << Anchor_List_count << endl ;
+
+        Anchor_List = new Anchor_info[Anchor_List_count];
+        init_count = 0;
+        while (g_result->next())
+        {
+            string anchor_id = g_result->getString("anchor_id");
+            string set_x = g_result->getString("set_x");
+            string set_y = g_result->getString("set_y");
+
+            int an = std::atoi(anchor_id.c_str());
+            int x = std::atoi(set_x.c_str());
+            int y = std::atoi(set_y.c_str());
+            Anchor_List[init_count].id = an;
+            Anchor_List[init_count].point.x = x;
+            Anchor_List[init_count].point.y = y;
+            cout << "sql an :" << an << "," <<  x <<"," << y << endl ;
+
+            init_count++;
+        }
+
+
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+    }
+
+    SQL_Close();
 }
 
 
@@ -2044,14 +2230,8 @@ void init_anchor_list(void)
 {
     delete[] Anchor_List;
     delete[] Main_Anchor_List;
-    /*
-    for (size_t i = 0; i < Main_Anchor_List_count; i++)
-    	this->pictureBox3->Controls->Remove(Main_anchor_display[i]);
-    for (size_t i = 0; i < Anchor_List_count; i++)
-    	this->pictureBox3->Controls->Remove(Anchor_display[i]);
-    */
-    //delete[] Main_anchor_display;
-    //delete[] Anchor_display;
+
+
     Anchor_List_count = 0;
     Main_Anchor_List_count = 0;
     int init_count = 0;
@@ -2067,26 +2247,6 @@ void init_anchor_list(void)
         Main_Anchor_List_count++;
     }
     Main_Anchor_List = new Anchor_info[Main_Anchor_List_count];
-
-
-
-    /*
-    Main_anchor_display = gcnew array<System::Windows::Forms::PictureBox^>(Main_Anchor_List_count);
-    for (size_t i = 0; i < Main_Anchor_List_count; i++)
-    {
-    	//this->Main_anchor_display[i]->Controls->Add(Main_anchor_display[i]);
-    	this->Main_anchor_display[i] = (gcnew System::Windows::Forms::PictureBox());
-    	//(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->Main_anchor_display[i]))->BeginInit();
-    	this->pictureBox3->Controls->Add(Main_anchor_display[i]);
-    	//this->Main_anchor_display[i]->Location = System::Drawing::Point(100, 100);
-    	this->Main_anchor_display[i]->BackColor = this->Main_anchor_display[i]->BackColor.Red;
-    	//this->Main_anchor_display[i]->Name = L"pictureBox3";
-    	this->Main_anchor_display[i]->Size = System::Drawing::Size(10, 10);
-    	this->Main_anchor_display[i]->TabIndex = 0;
-    	this->Main_anchor_display[i]->TabStop = false;
-    	this->Main_anchor_display[i]->Visible = false;
-    }
-    */
 
     inFile.close();
     inFile.open("Main Anchor List.ini");
@@ -2110,7 +2270,7 @@ void init_anchor_list(void)
         Main_Anchor_List[init_count].id = an;
         Main_Anchor_List[init_count].point.x = x;
         Main_Anchor_List[init_count].point.y = y;
-//        dc.DrawPoint(wxPoint(x+StaticBitmap1->GetPosition().x, 373-y+StaticBitmap1->GetPosition().y));
+        cout << "main an :"<< an << "," << x << "," << y << endl ;
         init_count++;
     }
     inFile.close();
@@ -2124,27 +2284,13 @@ void init_anchor_list(void)
             break;
         Anchor_List_count++;
     }
+
     Anchor_List = new Anchor_info[Anchor_List_count];
-    /*
-    Anchor_display = gcnew array<System::Windows::Forms::PictureBox^>(Anchor_List_count);
-    for (size_t i = 0; i < Anchor_List_count; i++)
-    {
-    	this->Anchor_display[i] = (gcnew System::Windows::Forms::PictureBox());
-    	this->pictureBox3->Controls->Add(Anchor_display[i]);
-    	this->Anchor_display[i]->BackColor = this->Anchor_display[i]->BackColor.Blue;
-    	this->Anchor_display[i]->Size = System::Drawing::Size(10, 10);
-    	this->Anchor_display[i]->TabIndex = 0;
-    	this->Anchor_display[i]->TabStop = false;
-    	this->Anchor_display[i]->Visible = false;
-    }
-    */
+
     inFile.close();
     inFile.open("Anchor List.ini");
 
 
-//    wxPen pen2(*wxGREEN, 7); // red pen of width 1
-    //dc.SetPen(*wxRED_PEN);
-//    dc.SetPen(pen2);
 
     while (getline(inFile, line))
     {
@@ -2162,14 +2308,33 @@ void init_anchor_list(void)
         Anchor_List[init_count].point.x = x;
         Anchor_List[init_count].point.y = y;
 
-        cout << " >>>>>" <<an << ":" << x << ":" << y << endl ;
+        cout << "an :" <<an << ":" << x << ":" << y << endl ;
 
-//        dc.DrawPoint(wxPoint(x+StaticBitmap1->GetPosition().x, 373-y+StaticBitmap1->GetPosition().y));
         init_count++;
     }
     inFile.close();
 }
 
+string Trans2Standard( string tmp )
+{
+    //string tmp = input ;
+
+    //tmp = tmp.replace( tmp.begin(),tmp.begin()+10, "-" );
+
+    for ( int i = 0 ; i <2; i++ )
+        tmp = tmp.replace( tmp.find( "/"),1,"-" );
+
+    tmp = tmp.replace( tmp.find( "/"),1," " );
+    tmp = tmp.replace( tmp.find_last_of( ":"),1,"." );
+    return tmp;
+
+//    cout << tmp << endl ;
+
+}
+
+
+
+volatile bool Record2SQL = true ;
 void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_record_count, Status_record* Tag_Status_record_info, unsigned int status_record_count)
 {
     //cout << "point display" << endl;
@@ -2188,18 +2353,32 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
 
 
         double temp_scale = (1 / image_scale);
+
+
+        Connection *con = nullptr;//= connpool.GetConnection();;
+        Statement *state = nullptr;
+        ResultSet *result = nullptr;
+        if ( _SQL_flag )
+            SQL_Open_single( con, state, result ) ;
+
+
         for (size_t i = 0; i < (unsigned)point_count; i++)
         {
             long temp_x = (long)(Tag_Map_point[i].point.x / temp_scale);
             long temp_y = (long)(Tag_Map_point[i].point.y / temp_scale);
+            string temp_id = Tag_Map_point[i].Tag_Map_string ;
+            string time = Tag_record_info[i].Tag_info_record[Tag_record_info[i].Info_count - 1].System_Time ;
 
-            //WriteToSQL()
+            string temp_time = Trans2Standard(time);
+            if ( Record2SQL && _SQL_flag )
+                SQL_AddLocus( state, temp_id, to_string(temp_x), to_string(temp_y), "1", temp_time ) ;
 
-
-//            dc.DrawPoint(wxPoint(temp_x+StaticBitmap1->GetPosition().x, 373-temp_y+StaticBitmap1->GetPosition().y));
-            //cout << ">>>>>>>>>>>>>>>>>>>>>>>>>X:" << temp_x << ", Y:" << temp_y << endl ;
 
         }
+
+        if ( _SQL_flag )
+            SQL_Close_single( con, state, result );
+
     }
 
 
@@ -2255,14 +2434,15 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
 }
 
 
-bool run_flag = false ;
 
 
 
 typedef void (*lanuch_t)();
-void *handle;
+void loc_run2();
+void *g_handle;
 int load_DLL()
 {
+    void *handle;
     cout << "C++ dlopen" << endl;
 
     // 打开库文件
@@ -2282,6 +2462,7 @@ int load_DLL()
 
     // 错误
     dlerror();
+
 //
 //    lanuch_t hi = (lanuch_t) dlsym(handle, "_ZN8Location10set_AnchorEP19Main_Anchor_MessagejP14Anchor_Messagej");
 //    const char *dlsym_error = dlerror();
@@ -2315,28 +2496,28 @@ int load_DLL()
     */
 
     // 关闭库文件
-    //cout << "Closing library..."<< endl;
-    //dlclose(handle);
+    cout << "Closing library..."<< endl;
+//    dlclose(handle);
     return 0 ;
 
 }
 
-char* StringToChar(std::string str)
-{
-    char* cstr = new char[str.size() + 1];
-    strcpy(cstr, str.c_str());
-    return cstr;
-}
+
+
+
+
+
+
 
 
 //volatile int tep = 0 ;
 
 volatile bool debug_mode = false;
-
+void Pre_Setting_init();
 volatile bool server_flag = false;
 //const char*  Filename;
 
-
+void Stop();
 void TCP_thread_Safe( SOCKET m_socket )
 {
     if ( debug_mode )
@@ -2393,16 +2574,14 @@ void TCP_thread_Safe( SOCKET m_socket )
             const char* html_temp;
             const char* binch2;
 
-            //if (debug_mode)
-            //cout << testbuff << endl ;
-
 
             Filename = "/var/www/html/Location System/html/index.html";
             std::string html_head = "/var/www/html/Location System/html/";
             std::string html_root = "/var/www/html/Location System/";
             std::string html_str;
 
-            cout <<testbuff<< endl  ;
+            if ( debug_mode )
+                cout <<testbuff<< endl  ;
 
             unsigned char delibuff[buf_len] = { 0 };
             memset(delibuff, 0, sizeof(delibuff));
@@ -2414,8 +2593,6 @@ void TCP_thread_Safe( SOCKET m_socket )
             for ( int i = 0 ; i < strlen((char*)testbuff) ; i++ )
                 printf( "%d ", testbuff[i] ) ;
             //*/
-
-
             // notice the end of char array set by 0 ~~~
 
 
@@ -2514,13 +2691,13 @@ void TCP_thread_Safe( SOCKET m_socket )
                     for (size_t i = 0; i < point_count-1; i++)
                     {
                         tags_id += "\"" + Tag_Map_point[i].Tag_Map_string + "\",";
-                        tags_x += LongToString(Tag_Map_point[i].point.x) + ",";
-                        tags_y += LongToString(Tag_Map_point[i].point.y) + ",";
+                        tags_x += to_string(Tag_Map_point[i].point.x) + ",";
+                        tags_y += to_string(Tag_Map_point[i].point.y) + ",";
                         tags_systemTime += "\"2019-01-27 00:00:00:00\",";
                     }
                     tags_id += "\"" + Tag_Map_point[point_count - 1].Tag_Map_string + "\"";
-                    tags_x += LongToString(Tag_Map_point[point_count - 1].point.x);
-                    tags_y += LongToString(Tag_Map_point[point_count - 1].point.y);
+                    tags_x += to_string(Tag_Map_point[point_count - 1].point.x);
+                    tags_y += to_string(Tag_Map_point[point_count - 1].point.y);
                     tags_systemTime += "\"2019-01-28 00:00:00:00\"";
                     response_text = "{\"tag_list\":[" + tags_id + "], \"x\":[" + tags_x + "], \"y\":[" + tags_y + "], \"system_time\":[" + tags_systemTime + "]}";
                     binch2 = response_text.c_str();
@@ -2558,13 +2735,14 @@ void TCP_thread_Safe( SOCKET m_socket )
                     std::string main_anchors_id, main_anchors_x, main_anchors_y, response_text;
                     for (size_t i = 0; i < Main_Anchor_List_count; i++)
                     {
-                        main_anchors_id += IntToString(Init_Group_Main_Anchor_List[i].id) + ",";
-                        main_anchors_x += IntToString(Init_Group_Main_Anchor_List[i].x) + ",";
-                        main_anchors_y += IntToString(Init_Group_Main_Anchor_List[i].y) + ",";
+                        main_anchors_id += to_string(Init_Group_Main_Anchor_List[i].id) + ",";
+                        main_anchors_x += to_string(Init_Group_Main_Anchor_List[i].x) + ",";
+                        main_anchors_y += to_string(Init_Group_Main_Anchor_List[i].y) + ",";
+                        cout << Init_Group_Main_Anchor_List[i].id << "," << Init_Group_Main_Anchor_List[i].x << "," << Init_Group_Main_Anchor_List[i].y << endl ;
                     }
-                    main_anchors_id += IntToString(Init_Group_Main_Anchor_List[Main_Anchor_List_count - 1].id);
-                    main_anchors_x += IntToString(Init_Group_Main_Anchor_List[Main_Anchor_List_count - 1].x);
-                    main_anchors_y += IntToString(Init_Group_Main_Anchor_List[Main_Anchor_List_count - 1].y);
+                    main_anchors_id += to_string(Init_Group_Main_Anchor_List[Main_Anchor_List_count - 1].id);
+                    main_anchors_x += to_string(Init_Group_Main_Anchor_List[Main_Anchor_List_count - 1].x);
+                    main_anchors_y += to_string(Init_Group_Main_Anchor_List[Main_Anchor_List_count - 1].y);
                     response_text = "{\"main_id\":[" + main_anchors_id + "], \"main_x\":[" + main_anchors_x + "], \"main_y\":[" + main_anchors_y + "]}";
                     binch2 = response_text.c_str();
                     //char binch2[] = "{\"id\":[111,112,113],\"x\":[100,120,560],\"y\":[555,322,210]}";
@@ -2580,13 +2758,13 @@ void TCP_thread_Safe( SOCKET m_socket )
                     std::string anchors_id, anchors_x, anchors_y, response_text;
                     for (size_t i = 0; i < Anchor_List_count - 1; i++)
                     {
-                        anchors_id += IntToString(Init_Group_Anchor_List[i].id) + ",";
-                        anchors_x += IntToString(Init_Group_Anchor_List[i].x) + ",";
-                        anchors_y += IntToString(Init_Group_Anchor_List[i].y) + ",";
+                        anchors_id += to_string(Init_Group_Anchor_List[i].id) + ",";
+                        anchors_x += to_string(Init_Group_Anchor_List[i].x) + ",";
+                        anchors_y += to_string(Init_Group_Anchor_List[i].y) + ",";
                     }
-                    anchors_id += IntToString(Init_Group_Anchor_List[Anchor_List_count - 1].id);
-                    anchors_x += IntToString(Init_Group_Anchor_List[Anchor_List_count - 1].x);
-                    anchors_y += IntToString(Init_Group_Anchor_List[Anchor_List_count - 1].y);
+                    anchors_id += to_string(Init_Group_Anchor_List[Anchor_List_count - 1].id);
+                    anchors_x += to_string(Init_Group_Anchor_List[Anchor_List_count - 1].x);
+                    anchors_y += to_string(Init_Group_Anchor_List[Anchor_List_count - 1].y);
                     response_text = "{\"id\":[" + anchors_id + "], \"x\":[" + anchors_x + "], \"y\":[" + anchors_y + "]}";
                     binch2 = response_text.c_str();
                     //char binch2[] = "{\"main_id\":[123,124,125],\"main_x\":[500,200,300],\"main_y\":[100,300,200]}";
@@ -2613,7 +2791,8 @@ void TCP_thread_Safe( SOCKET m_socket )
                 response_html = html_root + "html/" + str;
                 html_temp = response_html.c_str();//StringToChar(html_str);
 
-                cout << "html :" << html_temp << endl ;
+                if ( debug_mode )
+                    cout << "html :" << html_temp << endl ;
 
                 std::ifstream fin(html_temp, std::ios::in);
                 while (fin.get(ch))
@@ -2882,14 +3061,15 @@ void TCP_thread_Safe( SOCKET m_socket )
 
                     action = arg_from_web["Command_Type"][0].get<std::string>() ;
                     command_name = arg_from_web["Command_Name"][0].get<std::string>() ;
-                    function_amount = arg_from_web["Value"]["function"].size() ;
-                    dev_amount = arg_from_web["Value"]["IP_address"].size() ;
+
 
                     if ( action == "Write" )
                         rw_flag = 2;
                     else
                         rw_flag = 1 ;
 
+
+                    cout << "command_name:"<< command_name << endl ;
 
 
                     if ( command_name == "Search" )
@@ -2908,8 +3088,30 @@ void TCP_thread_Safe( SOCKET m_socket )
 
                     }
 
+                    else if ( command_name == "Launch" )
+                    {
+                        if ( arg_from_web["Value"].get<std::string>() == "Start" )
+                        {
+                            cout << ">>>>>>>>>>>>>>>>>>>>>>>>GET Launch"<< endl ;
+                            if ( !isPreSet )
+                                Pre_Setting_init();
+                            openserver_flag = true ;
+
+                            j_response["Status"] = "Start" ;
+                        }
+                        else if ( arg_from_web["Value"].get<std::string>() == "Stop" )
+                        {
+                            cout << ">>>>>>>>>>>>>>>>>>>>>>>>GET Stop"<< endl ;
+                            Stop();
+                            j_response["Status"] = "Stop" ;
+                        }
+                    }
+
                     else
                     {
+                        function_amount = arg_from_web["Value"]["function"].size() ;
+                        dev_amount = arg_from_web["Value"]["IP_address"].size() ;
+
                         if ( function_amount != 0 )
                         {
 
@@ -2939,8 +3141,6 @@ void TCP_thread_Safe( SOCKET m_socket )
                                     unsigned char Reader_value[2048] = { 0 };
                                     unsigned char set_Reader_value[2048] = { 0 };
                                     memset(Reader_value, 0, sizeof(Reader_value));
-
-
 
 
                                     // found the command in g_function_7_arg_map ;
@@ -3022,7 +3222,6 @@ void TCP_thread_Safe( SOCKET m_socket )
 
                                         usleep(2000);
                                     }
-
 
 
 
@@ -3156,14 +3355,16 @@ return_ok:
                 {
                     stringstream json_part ;
                     json_part << deli_arg ; // char* to stringstream
-                    cout << "stream:"<< json_part.str() << endl ; // stringstream to string
-                    auto arg_from_web = json::parse(json_part.str()); // string to json parser
-                    cout << "get_arg from web :" << arg_from_web << endl ;
+//                    cout << "stream:"<< json_part.str() << endl ; // stringstream to string
 
-                    action = arg_from_web["Command_Type"][0].get<std::string>() ;
-                    command_name = arg_from_web["Command_Name"][0].get<std::string>() ;
-                    function_amount = arg_from_web["Value"]["function"].size() ;
-                    dev_amount = arg_from_web["Value"]["IP_address"].size() ;
+                    auto arg_from_web = json::parse(json_part.str()); // string to json parser
+//                    cout << "get_arg from web :" << arg_from_web << endl ;
+
+                    //action = arg_from_web["Command_Type"][0].get<std::string>() ;
+                    //command_name = arg_from_web["Command_Name"][0].get<std::string>() ;
+                    //function_amount = arg_from_web["Value"]["function"].size() ;
+                    //dev_amount = arg_from_web["Value"]["IP_address"].size() ;
+                    function_amount = arg_from_web["Command_Name"].size() ;
 
                     if ( action == "Write" )
                         rw_flag = 2;
@@ -3171,30 +3372,30 @@ return_ok:
                         rw_flag = 1 ;
 
 
+//                    SQL_Open();
+//                    vector<vector<string>> foo = SQL_GetAnchors_info();
+//                    SQL_Close();
+//                    for (int i = 0 ; i < foo.size() ; i++ )
+//                    {
+//                        for ( int j = 0 ; j < foo[i].size() ; j++ )
+//                            cout << foo[i][j] << " " ;
+//                        cout << endl ;
+//                    }
 
-                    if ( command_name == "Search" )
+
+//                    SQL_Open();
+//                    j_response = json_SQL_GetAnchors_info();
+
+                    json j_arg = arg_from_web["Value"] ;
+
+                    for ( int i = 0 ; i < function_amount ; i++ )
                     {
-                        str_inferface_ip = "" ;
-                        str_inferface_ip = arg_from_web["Value"]["net_interface_id"][0].get<std::string>();
-
-                        dev_count = 0 ;
-                        if ( str_inferface_ip != "" )
-                            dev_count = Update_search_dev( str_inferface_ip ) ;
-                        if (dev_count != 0)
+                        command_name = arg_from_web["Command_Name"][i].get<std::string>() ;
+                        if ( _SQL_flag )
                         {
-                            j_response = g_json_multi ;
-                            g_json_multi.clear() ;
+                            j_response = Call_SQL_func( command_name, j_arg );
                         }
-
-                    }
-
-                    else
-                    {
-                        if ( function_amount != 0 )
-                        {
-
-
-                        }
+//                    SQL_Close();
                     }
 
 
@@ -3203,14 +3404,17 @@ return_ok:
                 catch(json::parse_error)
                 {
                     cout << "parse_error" << endl ;
+
                 }
                 catch(json::type_error)
                 {
                     cout << "type_error" << endl ;
+
                 }
                 catch( exception &e )
                 {
                     cout << "other error" << endl ;
+                    std::cout << e.what() << std::endl;
                 }
 
                 std::string response_text = j_response.dump();
@@ -3265,7 +3469,8 @@ return_ok:
                 response_html = html_root + str;
                 html_temp = response_html.c_str();//StringToChar(html_str);
 
-                cout << "html :" << html_temp << endl ;
+                if (debug_mode)
+                    cout << "html :" << html_temp << endl ;
 
                 std::ifstream fin(html_temp, std::ios::in);
                 while (fin.get(ch))
@@ -3318,52 +3523,169 @@ return_ok:
 }
 
 
-
-
-
-void loc_run()
+void Pre_Setting_init()
 {
-    run_flag = true ;
-    openserver_flag = true;
+    if ( _SQL_flag )
+    {
+        cout << "SQL_FLAG" << endl ;
+        SQL_Anchors_init();
+        SQL_Group_init();
+    }
+    else
+    {
+        init_anchor_list();
+        Init_Group_List();
+    }
+    isPreSet = true ;
+}
 
-    init_anchor_list();
-    Init_Group_List();
+
+//void loc_run()
+//{
+//
+//    Pre_Setting_init();
+//
+//    int ret = load_DLL() ;
+//    cout << "result :" << ret << endl;
+//
+//    //lanuch_t run = (lanuch_t) dlsym(handle, "Location_Set_Anchor");
+//    Init_Anchor = (Location_Set_Anchor_fun) dlsym(handle, Location_Set_Anchor );
+//    if (Init_Anchor)
+//    {
+//        Init_Anchor(Init_Group_Main_Anchor_List, Init_Group_Main_Anchor_List_count, Init_Group_Anchor_List, Init_Group_Anchor_List_count);
+////        str.Printf( wxT("init_anchor_successfully") );
+////        this->StatusBar1->SetStatusText( str,1 );
+//        cout << "init_anchor_success" << endl ;
+////        usleep(1000000);
+//    }
+//
+//
+//    //Location_Init = (Location_Init_fun)GetProcAddress(CallLibrary, "Location_Init");
+//    Location_Init = (Location_Init_fun) dlsym(handle, Location_init);
+//    if (Location_Init)
+//    {
+//        bool bResault = Location_Init();
+//        if (bResault)
+//        {
+////            str.Printf( wxT("location_init") );
+////            this->StatusBar1->SetStatusText( str,1 );
+//            cout << "location_init" << endl ;
+//
+//            //Load_Location_coordinate = (Load_Location_Coordinate)GetProcAddress(CallLibrary, "Load_Location_coordinate_record");
+//            //Load_Location_status = (Load_Location_Status)GetProcAddress(CallLibrary, "Load_Location_status_record");
+//            Load_Location_coordinate = (Load_Location_Coordinate) dlsym(handle, Load_Location_coordinate_record);
+//            Load_Location_status = (Load_Location_Status) dlsym(handle, Load_Location_status_record );
+//            //Sleep(1000);
+////            thread server_thread( Lanuch_Server ) ;
+////            server_thread.detach();
+//
+//            //*
+//            while (openserver_flag)
+//            {
+//                Tag_record* Tag_record_info = NULL;
+//                Status_record* Tag_Status_record_info = NULL;
+//                unsigned int coordinate_record_count = 0, status_record_count = 0;
+//
+//                //cout << Load_Location_coordinate << endl ;
+//                if (Load_Location_coordinate)
+//                    Tag_record_info = Load_Location_coordinate(coordinate_record_count);
+//                if (Load_Location_status)
+//                    Tag_Status_record_info = Load_Location_status(status_record_count);
+//
+//                //cout << "record count :"<<coordinate_record_count << endl;
+//                Location_Point_display(Tag_record_info, coordinate_record_count, Tag_Status_record_info, status_record_count);
+//
+//                usleep(100*1000);
+//
+//            }
+//            //*/
+//            //Device_signal_mode = (Device_Signal_Mode)GetProcAddress(CallLibrary, "Device_Signal_Mode");
+//
+////            if (Device_signal_mode)
+////            {
+////                Device_signal_mode(false, "", "");
+////                Thread^ UI_Thread;
+////                UI_Thread = gcnew Thread(gcnew ThreadStart(this, &MyForm::start_UI));
+////                UI_Thread->IsBackground = true;
+////                UI_Thread->Start();
+////            }
+////            dlclose(handle);
+////            handle = nullptr ;
+//
+//            cout << "END" << endl ;
+//
+//        }
+//    }
+//
+//}
+
+void Stop()
+{
+    openserver_flag = false;
+    isPreSet = false ;
+//    void *handle = g_handle;
+//    Location_cleanup = ( Cleanup ) dlsym(handle, Location_Cleanup );
+//    if ( Location_cleanup)
+//        Location_cleanup() ;
+
+
+}
+
+
+
+void pre_loc2()
+{
     int ret = load_DLL() ;
-
     cout << "result :" << ret << endl;
 
 
-    //lanuch_t run = (lanuch_t) dlsym(handle, "Location_Set_Anchor");
+}
+
+
+void loc_run2()
+{
+
+
+    void *handle = nullptr;
+    cout << "C++ dlopen" << endl;
+    // 打开库文件
+    cout << "Opening *.so..." << endl;
+    //动态库 libhello.so 的绝对路径
+    handle = dlopen(LIB_CACULATE_PATH, RTLD_NOW);
+
+    if (!handle)
+    {
+        cerr << "Cannot open library: " << endl << dlerror() << endl;
+        return ;
+    }
+    // 加载符号表
+    cout << "Loading symbol caculate..." << endl;
+
+
+
+
+
+
+    Pre_Setting_init();
+    Location_Init = (Location_Init_fun) dlsym(handle, Location_init);
+
     Init_Anchor = (Location_Set_Anchor_fun) dlsym(handle, Location_Set_Anchor );
     if (Init_Anchor)
     {
         Init_Anchor(Init_Group_Main_Anchor_List, Init_Group_Main_Anchor_List_count, Init_Group_Anchor_List, Init_Group_Anchor_List_count);
-//        str.Printf( wxT("init_anchor_successfully") );
-//        this->StatusBar1->SetStatusText( str,1 );
-        cout << "init_anchor_successfully" << endl ;
-//        usleep(1000000);
+        cout << "init_anchor_success" << endl ;
     }
 
 
-    //Location_Init = (Location_Init_fun)GetProcAddress(CallLibrary, "Location_Init");
-    Location_Init = (Location_Init_fun) dlsym(handle, Location_init);
     if (Location_Init)
     {
         bool bResault = Location_Init();
         if (bResault)
         {
-//            str.Printf( wxT("location_init") );
-//            this->StatusBar1->SetStatusText( str,1 );
             cout << "location_init" << endl ;
 
-            //Load_Location_coordinate = (Load_Location_Coordinate)GetProcAddress(CallLibrary, "Load_Location_coordinate_record");
-            //Load_Location_status = (Load_Location_Status)GetProcAddress(CallLibrary, "Load_Location_status_record");
             Load_Location_coordinate = (Load_Location_Coordinate) dlsym(handle, Load_Location_coordinate_record);
             Load_Location_status = (Load_Location_Status) dlsym(handle, Load_Location_status_record );
-            //Sleep(1000);
-            thread server_thread( Lanuch_Server ) ;
-
-            server_thread.detach();
 
             //*
             while (openserver_flag)
@@ -3375,30 +3697,30 @@ void loc_run()
                 //cout << Load_Location_coordinate << endl ;
                 if (Load_Location_coordinate)
                     Tag_record_info = Load_Location_coordinate(coordinate_record_count);
-                if (Load_Location_status)
-                    Tag_Status_record_info = Load_Location_status(status_record_count);
-
-                //cout << "record count :"<<coordinate_record_count << endl;
+//                if (Load_Location_status)
+//                    Tag_Status_record_info = Load_Location_status(status_record_count);
+//
+//                //cout << "record count :"<<coordinate_record_count << endl;
                 Location_Point_display(Tag_record_info, coordinate_record_count, Tag_Status_record_info, status_record_count);
 
-                //usleep(200000);
-                //usleep(200000);
-            }
-            //*/
-            //Device_signal_mode = (Device_Signal_Mode)GetProcAddress(CallLibrary, "Device_Signal_Mode");
+                usleep(100000);
 
-//            if (Device_signal_mode)
-//            {
-//                Device_signal_mode(false, "", "");
-//                Thread^ UI_Thread;
-//                UI_Thread = gcnew Thread(gcnew ThreadStart(this, &MyForm::start_UI));
-//                UI_Thread->IsBackground = true;
-//                UI_Thread->Start();
-//            }
+            }
+
             cout << "END" << endl ;
 
         }
     }
+
+    Location_cleanup = ( Cleanup ) dlsym(handle, Location_Cleanup );
+    if ( Location_cleanup)
+        Location_cleanup() ;
+
+    cout << "before close" << endl ;
+//    cout << "close value :" << dlclose(handle) << endl ;
+    cout << "after close" << endl ;
+
+
 
 }
 
@@ -3409,7 +3731,7 @@ void List_port2()
 
     string port;
     int fd;
-    //vector<string> list;
+    //vector<string>  list;
     for(int i = 0; i < 256; ++i)
     {
         port.clear();
@@ -3424,16 +3746,33 @@ void List_port2()
         }
         else
         {
-            list.push_back(port);
+            port_list.push_back(port);
         }
 
     }
 
     cout << endl << "ok port : " << endl ;
-    for ( int i = 0 ; i < list.size() ; i++)
-        cout  << list[i] << endl ;
+    for ( int i = 0 ; i < port_list.size() ; i++)
+        cout  << port_list[i] << endl ;
 
 
+
+}
+
+
+
+void Setting_Server_IP()
+{
+
+    cout << "Type the IP :" << endl ;
+    char input_ip[16] = {0} ;
+    cin.getline(input_ip,16); //呼叫函數 ,10代表最大能讀入的字串長度
+    cout << ">>" << input_ip << "<<" << endl ;
+    if ( strlen(input_ip) == 15 )
+        ip_adr = (char*)input_ip;
+//    strcpy( ip_adr, (char*)input_ip ) ;
+//    *ip_adr = *input_ip;
+    cout << ">>" << ip_adr << "<<" << endl ;
 
 }
 
@@ -3466,24 +3805,53 @@ int main()
     //*/
 
 
+
+
+
+
+//    Setting_Server_IP();
+
     construct_func_map() ;
     construct_RW_json_map();
 
-    //g_RW_json_package["Read_RF"]();
+    thread server_thread( Lanuch_Server ) ;
+    server_thread.detach();
 
 
-    //*
-    cout << "LOC" << endl ;
-    loc_run();
-    //*/
+    if ( _using_SQL() )
+    {
+        SQL_Init();
+        if ( Construct_sql_cmd() )
+            _SQL_flag = true ;
+        else
+        {
+            cout << "Construct DB Failed" << endl ;
+            return 0;
+        }
+    }
 
 
 
+    while (1)
+    {
+        while ( openserver_flag )
+        {
+            if ( _SQL_flag )
+                cout << "====== SQL Mode ======" << endl ;
+
+            else
+                cout << "====== Without SQL Mode ======" << endl ;
 
 
+            loc_run2();
+//            cout << "close :" << dlclose(handle) << endl ;
+//            cout << "dl error :" << dlerror() << endl ;
+        }
+//        cout << "Openserver OFF"<< endl ;
 
+        usleep(1000000);
 
-
+    } // while
 
 
 }

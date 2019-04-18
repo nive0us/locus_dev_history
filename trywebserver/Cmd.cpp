@@ -788,6 +788,7 @@ void construct_func_map()
     new_func.callback = rfid::TCP::RW_active_ID ;
     new_func.func_name = "RW_active_ID" ;
     new_func.RW_arg = arg_active_ID;
+    new_func.set_length = 2 ;
     function_7_arg_map["rf_active_ID"] = new_func ;
 
     new_func.callback = rfid::TCP::RW_NTM_MULT ;
@@ -814,6 +815,7 @@ void construct_func_map()
     new_func.callback = rfid::TCP::RW_active_ID ;
     new_func.func_name = "RW_active_ID" ;
     new_func.RW_arg = arg_active_ID;
+    new_func.set_length = 2 ;
     function_7_arg_map["dev_active_ID"] = new_func ;
 
 
@@ -1214,17 +1216,18 @@ void Read_RF_json() {
 void Write_Basic_json() {
     try
     {
-        dev_transmission_cycle_time = g_json_single["dev_transmission_cycle_time"] ;
-        dev_active_ID = g_json_single["dev_active_ID"] ;
-
+        cout << "here" << endl ;
 
         if (Interface_name == UWB_Interface1)
         {
+            dev_active_ID = g_json_single["dev_active_ID"] ;
             active_ID = stoi(dev_active_ID);
 //            active_ID_flag = 2;
         }
         else
         {
+            dev_transmission_cycle_time = g_json_single["dev_transmission_cycle_time"] ;
+            dev_active_ID = g_json_single["dev_active_ID"] ;
             transmission_cycle_time = stoi(dev_transmission_cycle_time);
             active_ID = stoi(dev_active_ID);
 //            transmission_cycle_flag = 2;
@@ -1235,7 +1238,7 @@ void Write_Basic_json() {
     }
     catch ( exception &e )
     {
-        cout << "Write_Basic_json parser error" << endl ;
+        cout << "Write_Basic_json parser error"<< e.what() << endl ;
         return;
 
     }

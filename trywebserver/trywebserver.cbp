@@ -16,6 +16,9 @@
 					<Add option="-g" />
 					<Add directory="../trywebserver" />
 				</Compiler>
+				<Linker>
+					<Add option="-lmysqlcppconn" />
+				</Linker>
 			</Target>
 			<Target title="Release">
 				<Option output="bin/Release/trywebserver" prefix_auto="1" extension_auto="1" />
@@ -41,9 +44,13 @@
 		<Unit filename="Cmd.h" />
 		<Unit filename="Comport.cpp" />
 		<Unit filename="Comport.h" />
+		<Unit filename="DBPool.cpp" />
+		<Unit filename="DBPool.h" />
 		<Unit filename="Location.h" />
 		<Unit filename="LocationSdk.h" />
 		<Unit filename="SDK.h" />
+		<Unit filename="SQL_Cmd.cpp" />
+		<Unit filename="SQL_Cmd.h" />
 		<Unit filename="SerialPort.cpp" />
 		<Unit filename="SerialPort.h" />
 		<Unit filename="TCP.cpp" />
