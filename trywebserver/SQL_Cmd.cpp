@@ -53,6 +53,29 @@ string sql_create_tag2  = "pic_path VARCHAR(128) )";
 string sql_create_tag   = sql_create_table + sql_create_tag1 + sql_create_tag2 ;
 
 
+
+
+string sql_create_locus_combine1    = "locus_combine ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), tag_id VARCHAR(16), " ;
+string sql_create_locus_combine2    = "coordinate_x INT UNSIGNED, coordinate_y INT UNSIGNED, group_id SMALLINT UNSIGNED, `time`datetime(2) )";
+string sql_create_locus_combine     = sql_create_table + sql_create_locus1 + sql_create_locus2 ;
+
+
+
+
+
+string sql_create_locus_index1    = "locus_index ( `date`date NOT NULL , PRIMARY KEY (date), " ;
+string sql_create_locus_index2    = "id INT UNSIGNED  )";
+string sql_create_locus_index     = sql_create_table + sql_create_locus_index1 + sql_create_locus_index2 ;
+
+
+
+
+
+
+
+
+
+
 int list_size = 5 ;
 //string sql_cmd_list[list_size];
 bool Construct_sql_cmd()
@@ -74,6 +97,9 @@ bool Construct_sql_cmd()
 
         SQL_ExecuteUpdate( sql_create_locus ) ;
         SQL_ExecuteUpdate( sql_create_tag ) ;
+        SQL_ExecuteUpdate (sql_create_locus_combine );
+
+        SQL_ExecuteUpdate( sql_create_locus_index ) ;
 
         SQL_Close();
     }
@@ -294,6 +320,9 @@ json Call_SQL_func( string func_name, json func_arg )
         else if ( func_name == "GetLocus" )
             ret = json_SQL_GetSingleLocus( state, func_arg["tag_id"].get<std::string>(), func_arg["start_date"].get<std::string>(),  func_arg["start_time"].get<std::string>(), func_arg["end_date"].get<std::string>(),  func_arg["end_time"].get<std::string>(), result ) ;
 
+        else if ( func_name == "GetLocus_combine" )
+            ret = json_SQL_GetSingleLocus_combine( state, func_arg["tag_id"].get<std::string>(), func_arg["start_date"].get<std::string>(),  func_arg["start_time"].get<std::string>(), func_arg["end_date"].get<std::string>(),  func_arg["end_time"].get<std::string>(), result ) ;
+
 
         // **********Truncate table********
         if ( func_name == "ClearAllAnchors" )
@@ -334,7 +363,6 @@ json Call_SQL_func( string func_name, json func_arg )
 
 }
 
-
 int SQL_AddAnchor( Statement *&state, string id, string x, string y, string type )
 {
 //    INSERT INTO anchor_info VALUES ( '0','65512',  '348', '5', 'main' );
@@ -374,6 +402,13 @@ int SQL_AddMap_Group( Statement *&state, string map_id, string group_id )
 int SQL_AddLocus( Statement *&state, string tag_id, string x, string y, string group_id, string date,string time )
 {
     string query = "INSERT INTO locus VALUES ( '0','" + tag_id + "', '" + x + "', '" + y + "', '" + group_id + "', '" +  date + "', '" + time + "' );";
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+
+int SQL_AddLocus_combine( Statement *&state, string tag_id, string x, string y, string group_id, string time )
+{
+    string query = "INSERT INTO locus_combine VALUES ( '0','" + tag_id + "', '" + x + "', '" + y + "', '" + group_id + "', '" +  time + "' );";
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
@@ -710,21 +745,104 @@ json json_SQL_GetTags_info( Statement *&state, ResultSet *&result )
     return foo ;
 }
 
+
+
+string Str2Time_BackDate( string date )
+{
+
+    tm tm_;
+    time_t t_;
+    char buf[128]= {0};
+
+    //strcpy(buf, "2012-01-30");
+    string in = date + " 00:00:00" ;
+//    cout << in << endl ;
+
+
+    strcpy (buf, in.c_str());
+
+    strptime(buf, "%Y-%m-%d %H:%M:%S", &tm_); //将字符串转换为tm时间
+    tm_.tm_isdst = -1;
+    t_  = mktime(&tm_); //将tm时间转换为秒时间
+    //t_ += 3600;  //秒数加3600
+    t_ -= 86400;
+
+    tm_ = *localtime(&t_);//输出时间
+    strftime(buf, 64, "%Y-%m-%d", &tm_);
+    cout << buf << endl;
+
+    string val_out = "nothing";
+//    cout << "before :" << val_out << endl ;
+    val_out = string(buf);
+    cout << "LastDay :" << val_out  << "<<" << endl ;
+
+    return val_out ;
+
+}
+
+
+
+string Str2Time_ShiftDate( string date )
+{
+
+    tm tm_;
+    time_t t_;
+    char buf[128]= {0};
+
+    //strcpy(buf, "2012-01-30");
+    string in = date + " 00:00:00" ;
+//    cout << in << endl ;
+
+
+    strcpy (buf, in.c_str());
+
+    strptime(buf, "%Y-%m-%d %H:%M:%S", &tm_); //将字符串转换为tm时间
+    tm_.tm_isdst = -1;
+    t_  = mktime(&tm_); //将tm时间转换为秒时间
+    //t_ += 3600;  //秒数加3600
+    t_ += 86400;
+
+    tm_ = *localtime(&t_);//输出时间
+    strftime(buf, 64, "%Y-%m-%d", &tm_);
+//    cout << buf << endl;
+
+    string val_out = "nothing";
+//    cout << "before :" << val_out << endl ;
+    val_out = string(buf);
+//    cout << "after :" << val_out  << "<<" << endl ;
+
+
+    return val_out ;
+
+}
+
+
+
+
 json json_SQL_GetSingleLocus( Statement *&state, string tag_id, string start_date, string start_time, string end_date, string end_time, ResultSet *&result )
 {
     json foo;
     foo["success"] = 0 ;
     json temp ;
-    string query = "select * from locus where tag_id = '" + tag_id + "' and ( date > '" + start_date + "'and date < '" + end_date + "' ";
-    string query2 = " or ( ( date = '" + start_date + "' and time >= '" + start_time + "') and ( date = '" + end_date + "' and time <= '" +  end_time + "') ) ) ;";
+
+    string query = "select * from locus where tag_id = '" + tag_id + "' ";
+    string query2 ;
+
+    //25.26.27.28
+    if ( start_date != end_date )
+        query2 = "and ( date = '" + start_date + "' and time between '" + start_time + "' and '" + "23:59:59" +"' ) ;";
+    else // ( start_date == end_date )
+        query2 = "and ( date = '" + start_date + "' and time between '" + start_time + "' and '" + end_time +"' ) ;";
+
+
+
     /*
-    select * from locus_date
+    select * from locus
     where tag_id = '000000000000000C'
-    and ( date > '2019-03-24'
-    and date < '2019-03-26'
-    or ( ( date = '2019-03-24' and time >= '01:10:00.00') and ( date = '2019-03-26' and time <= '01:00:00.00') ) );
+    and ( date = '2019-03-27' and time between '00::00' and '14:20:00' ) limit 0,864000;
     */
     query = query + query2 ;
+    cout << query << endl ;
     try
     {
         result = state->executeQuery(query);
@@ -741,6 +859,25 @@ json json_SQL_GetSingleLocus( Statement *&state, string tag_id, string start_dat
             foo["Values"].push_back(temp);
             temp.clear();
         }
+
+        string flag = "1" ;
+        string in = start_date ;
+        string shift_date = Str2Time_ShiftDate( in );
+
+        // after got the first day locus, shift to the next day,and return to web.
+        if ( start_date != end_date )
+            start_date = shift_date;
+        else if ( start_date == end_date )
+            flag = "0" ;
+        else
+            flag = "calculate date error" ;
+
+        foo["start_date"] = start_date;
+        foo["start_time"] = "00:00:00";
+        foo["end_date"] = end_date;
+        foo["end_time"] = end_time;
+        foo["Status"] = flag ;
+        foo["tag_id"] = tag_id ;
     }
     catch(sql::SQLException& e)
     {
@@ -751,5 +888,160 @@ json json_SQL_GetSingleLocus( Statement *&state, string tag_id, string start_dat
     foo["success"] = 1 ;
     return foo ;
 
+}
+
+json json_SQL_GetSingleLocus_combine( Statement *&state, string tag_id, string start_date, string start_time, string end_date, string end_time, ResultSet *&result )
+{
+    json foo;
+    foo["success"] = 0 ;
+    json temp ;
+
+    string query = "select * from locus_combine where tag_id = '" + tag_id + "' ";
+    string query2 = "";
+
+    //25.26.27.28
+    if ( start_date != end_date )
+        query2 = "and ( time between '" + start_date + " " + start_time + "' and '" + start_date + " 23:59:59" + "' ) ;";
+    else // ( start_date == end_date )
+        query2 = "and ( time between '" + start_date + " " + start_time + "' and '" + start_date + " " + end_time + "' ) ;";
+    /*
+    select * from locus
+    where tag_id = '000000000000000C'
+    and ( date = '2019-03-27' and time between '00::00' and '14:20:00' ) limit 0,864000;
+    */
+
+
+    string query3 = " select coordinate_x, coordinate_y, map_id, time from ( select coordinate_x, coordinate_y, group_id, time from locus_combine" ;
+    string query4 = " where tag_id = '000000000000000C' and time between '" ;
+    string query5 = "" ;
+    if ( start_date != end_date )
+        query5 = start_date + " " + start_time + "' and '" + start_date + " " + "23:59:59" + "' ";
+    else // ( start_date == end_date )
+        query5 = start_date + " " + start_time + "' and '" + start_date + " " + end_time + "' ";
+
+    string query6 = ")a join map_groups b on b.group_id = a.group_id limit 0,86400  ;" ;
+    /*
+    select coordinate_x, coordinate_y, map_id, time from (
+        select coordinate_x, coordinate_y, group_id, time from locus_combine
+        where tag_id = '000000000000000C' and time between '2019-03-29 10:00:32.72' and '2019-03-29 11:00:32.72'
+    )a join map_groups b on b.group_id = a.group_id limit 0,86400  ;
+    */
+
+
+    /*
+    select coordinate_x, coordinate_y, map_id, time from (
+        select * from (
+            select * from locus_combine
+            where id > (select id from locus_index where date = '2019-03-29')
+        )e where tag_id = '000000000000000C' and time between '2019-03-29 10:00:32.72' and '2019-03-29 11:00:32.72'
+    )a join map_groups b on b.group_id = a.group_id limit 0,864000;
+    */
+
+
+    query = query3 + query4 + query5 + query6 ;
+//    query = query + query2 ;
+
+    cout << query << endl ;
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next())
+        {
+            string coordinate_x = result->getString("coordinate_x");
+            string coordinate_y = result->getString("coordinate_y");
+            string map_id = result->getString("map_id");
+            string time = result->getString("time");
+
+
+            temp["coordinate_x"] = coordinate_x;
+            temp["coordinate_y"] = coordinate_y;
+            temp["map_id"] = map_id;
+            temp["time"] = time;
+
+            foo["Values"].push_back(temp);
+            temp.clear();
+        }
+
+        string flag = "1" ;
+        string in = start_date ;
+        string shift_date = Str2Time_ShiftDate( in );
+
+        // after got the first day locus, shift to the next day,and return to web.
+        if ( start_date != end_date )
+            start_date = shift_date;
+        else if ( start_date == end_date )
+            flag = "0" ;
+        else
+            flag = "calculate date error" ;
+
+        foo["start_date"] = start_date;
+        foo["start_time"] = "00:00:00";
+        foo["end_date"] = end_date;
+        foo["end_time"] = end_time;
+        foo["Status"] = flag ;
+        foo["tag_id"] = tag_id ;
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+    foo["success"] = 1 ;
+    return foo ;
 
 }
+
+
+
+
+void SQL_Update_locus_index( string date )
+{
+
+    Connection *con = nullptr;//= connpool.GetConnection();;
+    Statement *state = nullptr;
+    ResultSet *result = nullptr;
+
+    try
+    {
+        SQL_Open_single( con, state, result ) ;
+
+
+        string search_index = "select * from locus_index where date ='" + date + "';";
+        result = state->executeQuery(search_index);
+
+
+        if ( !result->next() )
+        {
+
+            // select * from locus_combine where time like '2019-03-29%' limit 0,1 ;
+            string search_locus = "select * from locus_combine where time like '" + date + "%' limit 0,1 ;";
+
+            // find the record in the locus
+            result = state->executeQuery(search_locus);
+            string id = "" ;
+
+            if ( result->next() ) // if got the record in locus
+            {
+                id = result->getString("id");
+                // add the index into locus_index
+                string query = "INSERT INTO locus_index VALUES ( '" + date + "', '" + id + "' );";
+                SQL_ExecuteUpdate_single( state, query ) ;
+            }
+        }
+
+        SQL_Close_single( con, state, result );
+
+    }
+    catch ( exception &e )
+    {
+        cout << "json parse error from CALL_SQL_FUNC" << endl;
+        cout << e.what() << endl ;
+        //SQL_Close();
+        SQL_Close_single( con, state, result );
+    }
+}
+
+
+
+

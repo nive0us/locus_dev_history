@@ -2341,7 +2341,7 @@ string TransDate( string tmp )
         tmp = tmp.replace( tmp.find( "/"),1,"-" );
 
     int current = 0;
-	int pos = tmp.find_first_of(" /", current);
+    int pos = tmp.find_first_of("/", current);
 
     // cout << tmp.substr(current, pos - current)<<endl;
     string rets = tmp.substr(current, pos - current) ;
@@ -2370,6 +2370,36 @@ string TransTime( string tmp )
 
 }
 
+string Get_LastDay_date() {
+
+    char buf[128]= {0};
+
+    struct tm* ptm = NULL;
+    time_t t = time(NULL);
+    ptm = localtime(&t);
+    strftime(buf,sizeof(buf),"%Y-%m-%d",ptm);
+//    cout<<buf<<endl;
+
+
+    string val_out = "nothing";
+//    cout << "before :" << val_out << endl ;
+    val_out = string(buf);
+//    cout << "after :" << val_out  << "<<" << endl ;
+
+    string val_out2 = val_out ; // Today's date
+    //val_out2 = Str2Time_BackDate( val_out ) ; // Today's date -> lastday's Date
+
+    return val_out2 ;
+
+}
+
+void check_locus_index() {
+    string date = Get_LastDay_date() ;
+
+    SQL_Update_locus_index(date);
+
+    usleep(0);
+}
 
 volatile bool Record2SQL = true ;
 void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_record_count, Status_record* Tag_Status_record_info, unsigned int status_record_count)
@@ -2407,11 +2437,14 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
             string time = Tag_record_info[i].Tag_info_record[Tag_record_info[i].Info_count - 1].System_Time ;
 
             // cout << time << endl ;
-            // string temp_date_time = Trans2Standard(time);
-            string temp_date = TransDate(time);
-            string temp_time = TransTime(time);
+            string temp_date_time = Trans2Standard(time);
             if ( Record2SQL && _SQL_flag )
-                SQL_AddLocus( state, temp_id, to_string(temp_x), to_string(temp_y), "1", temp_date, temp_time ) ;
+                SQL_AddLocus_combine( state, temp_id, to_string(temp_x), to_string(temp_y), "1",  temp_date_time ) ;
+
+//            string temp_date = TransDate(time);
+//            string temp_time = TransTime(time);
+//            if ( Record2SQL && _SQL_flag )
+//                SQL_AddLocus( state, temp_id, to_string(temp_x), to_string(temp_y), "1", temp_date, temp_time ) ;
 
 
         }
@@ -3737,13 +3770,14 @@ void loc_run2()
                 //cout << Load_Location_coordinate << endl ;
                 if (Load_Location_coordinate)
                     Tag_record_info = Load_Location_coordinate(coordinate_record_count);
-//                if (Load_Location_status)
-//                    Tag_Status_record_info = Load_Location_status(status_record_count);
+                if (Load_Location_status)
+                    Tag_Status_record_info = Load_Location_status(status_record_count);
 //
 //                //cout << "record count :"<<coordinate_record_count << endl;
                 Location_Point_display(Tag_record_info, coordinate_record_count, Tag_Status_record_info, status_record_count);
-
+                check_locus_index();
                 usleep(100000);
+
 
             }
 
@@ -3816,10 +3850,46 @@ void Setting_Server_IP()
 
 }
 
+
+
+
+void test_data()
+{
+    Connection *con = nullptr;//= connpool.GetConnection();;
+    Statement *state = nullptr;
+    ResultSet *result = nullptr;
+
+
+    if ( _SQL_flag )
+        SQL_Open_single( con, state, result ) ;
+
+
+    for ( int i = 0 ; i < 10000 ; i++)
+        // insert into locus values ( '0', '000000000000000C', '854', '42', '1', '2019-03-27', '01:05:24.21' );
+        if ( _SQL_flag )
+            SQL_AddLocus_combine( state, "000000000000000C", "854", "42", "1",  "2019-03-28 01:05:24.21" ) ;
+
+     for ( int i = 0 ; i < 20000 ; i++)
+        // insert into locus values ( '0', '000000000000000C', '854', '42', '1', '2019-03-27', '01:05:24.21' );
+        if ( _SQL_flag )
+            SQL_AddLocus_combine( state, "000000000000000C", "854", "42", "1",  "2019-03-28 11:22:33.21" ) ;
+
+    for ( int i = 0 ; i < 300000 ; i++)
+        // insert into locus values ( '0', '000000000000000C', '854', '42', '1', '2019-03-27', '01:05:24.21' );
+        if ( _SQL_flag )
+            SQL_AddLocus_combine( state, "000000000000000C", "854", "42", "1",  "2019-03-28 22:55:44.21" ) ;
+
+
+    if ( _SQL_flag )
+        SQL_Close_single( con, state, result );
+
+
+}
 int main()
 {
 
 
+    Get_LastDay_date() ;
     debug_mode = false ;
 
     cout << "net inferface" << endl ;
@@ -3846,9 +3916,6 @@ int main()
 
 
 
-
-
-
 //    Setting_Server_IP();
 
     construct_func_map() ;
@@ -3856,6 +3923,7 @@ int main()
 
     thread server_thread( Lanuch_Server ) ;
     server_thread.detach();
+
 
 
     if ( _using_SQL() )
@@ -3869,7 +3937,6 @@ int main()
             return 0;
         }
     }
-
 
 
     while (1)

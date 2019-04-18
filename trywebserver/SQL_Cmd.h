@@ -1,3 +1,4 @@
+#include <string>
 #include <string.h>
 #include <iostream>
 #include <map>
@@ -10,8 +11,10 @@
 #include <vector>
 #include "json.hpp"
 #include <unistd.h>
-using json = nlohmann::json;
+#include <time.h>
+#include <stdlib.h>
 
+using json = nlohmann::json;
 using namespace std;
 
 
@@ -54,7 +57,7 @@ int SQL_AddGroup_Anchor( Statement *&state, string group_id, string main_anchor_
 int SQL_AddMap_Group( Statement *&state, string map_id, string group_id ) ;
 
 int SQL_AddLocus( Statement *&state, string tag_id, string x, string y, string group_id, string date, string time ) ;
-
+int SQL_AddLocus_combine( Statement *&state, string tag_id, string x, string y, string group_id,  string time ) ;
 
 int SQL_OFF_SafeUpdate( Statement *&state );
 int SQL_DeleteAnchor( Statement *&state, string id );
@@ -74,3 +77,11 @@ json json_SQL_GetMap_Groups( Statement *&state, ResultSet *&result );
 
 json json_SQL_GetTags_info( Statement *&state, ResultSet *&result );
 json json_SQL_GetSingleLocus( Statement *&state, string tag_id, string start_date, string start_time, string end_date, string end_time, ResultSet *&result ) ;
+json json_SQL_GetSingleLocus_combine( Statement *&state, string tag_id, string start_date, string start_time, string end_date, string end_time, ResultSet *&result ) ;
+
+
+
+
+void SQL_Update_locus_index( string date );
+string Str2Time_BackDate( string date );
+string Str2Time_ShiftDate( string date );
