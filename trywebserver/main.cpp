@@ -2490,11 +2490,13 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
         double temp_scale = (1 / image_scale);
 
 
+        // Init DB connect START*******
         Connection *con = nullptr;//= connpool.GetConnection();;
         Statement *state = nullptr;
         ResultSet *result = nullptr;
         if ( _SQL_flag )
             SQL_Open_single( con, state, result ) ;
+        // Init END*******
 
 
         for (size_t i = 0; i < (unsigned)point_count; i++)
@@ -2505,9 +2507,12 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
             string time = Tag_record_info[i].Tag_info_record[Tag_record_info[i].Info_count - 1].System_Time ;
 
             // cout << time << endl ;
-            string temp_date_time = Trans2Standard(time);
+
+            // Write the Locus into DB START*******
+            string temp_date_time = Trans2Standard(time); // Transfer time to standard format.
             if ( Record2SQL && _SQL_flag )
                 SQL_AddLocus_combine( state, temp_id, to_string(temp_x), to_string(temp_y), "1",  temp_date_time ) ;
+            // write the Locus into DB END*******
 
 //            string temp_date = TransDate(time);
 //            string temp_time = TransTime(time);
@@ -2517,8 +2522,10 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
 
         }
 
+        // Close connect*******
         if ( _SQL_flag )
             SQL_Close_single( con, state, result );
+        // Close END*******
 
     }
 
@@ -2526,12 +2533,13 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
 
     if (status_record_count!=0)
     {
-
+        // Init DB connect START*******
         Connection *con = nullptr;//= connpool.GetConnection();;
         Statement *state = nullptr;
         ResultSet *result = nullptr;
         if ( _SQL_flag )
             SQL_Open_single( con, state, result ) ;
+         // Init DB connect END*******
 
 
         for (size_t i = 0; i < status_record_count; i++)
@@ -2550,12 +2558,14 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
                             Tag_Map_Status_temp->System_Time = Tag_Status_record_info[i].Status_info_record[Tag_Status_record_info[i].Info_count - 1].System_Time;
                             Tag_Map_Status_temp->Tag_ID = Tag_Status_record_info[i].Tag_ID;
 
+                            // Write EVENT into Database START*******
                             string temp_time = Tag_Map_Status_temp->System_Time ;
                             string temp_id = Tag_Map_Status_temp->Tag_ID ;
                             string temp_status = to_string(Tag_Map_Status_temp->Status) ;
                             string temp_date_time = Trans2Standard(temp_time);
                             if ( Record2SQL && _SQL_flag )
                                 SQL_AddEvent( state, temp_id, temp_status, temp_date_time ) ;
+                            // Write EVENT into Database END*******
 
                             //display_status();
                             Request_Alarm_Status_temp[request_alarm_count].Status = Tag_Map_Status_temp->Status;
@@ -2575,12 +2585,14 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
                 Tag_Map_Status_temp->System_Time = Tag_Status_record_info[i].Status_info_record[Tag_Status_record_info[i].Info_count - 1].System_Time;
                 Tag_Map_Status_temp->Tag_ID = Tag_Status_record_info[i].Tag_ID;
 
+                // Write EVENT into Database START*******
                 string temp_time = Tag_Map_Status_temp->System_Time ;
                 string temp_id = Tag_Map_Status_temp->Tag_ID ;
                 string temp_status = to_string(Tag_Map_Status_temp->Status) ;
                 string temp_date_time = Trans2Standard(temp_time);
                 if ( Record2SQL && _SQL_flag )
                     SQL_AddEvent( state, temp_id, temp_status, temp_date_time ) ;
+                // Write EVENT into Database END*******
 
 
                 //display_status();
@@ -2595,8 +2607,10 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
         status_record_count_temp = status_record_count;
 
 
+        // Close connect*******
         if ( _SQL_flag )
             SQL_Close_single( con, state, result );
+        // Close END*******
     }
 
 
@@ -2981,12 +2995,20 @@ void TCP_thread_Safe( SOCKET m_socket )
 
 
             /************************************************************
-            Device condition
+            Function condition
+
+            Request function status:
+
+            date        2019/04/16
+            /Command    : Work, command for "device" ,but deprecated.
+            /updateFW   : Work, testing.
+            /test       : Work, useless ,just practice to send.
+            /test2      : Work, do the same thing like /Command, but using the method "Callback" to call function.
+            /sql        : Work, any action about database, still adding the new action.
+
 
 
             //************************************************************/
-
-
 
             else if (strstr((char*)testbuff, "POST /Command HTTP/1.1") != 0 )
             {
@@ -3535,7 +3557,7 @@ return_ok:
                     //command_name = arg_from_web["Command_Name"][0].get<std::string>() ;
                     //function_amount = arg_from_web["Value"]["function"].size() ;
                     //dev_amount = arg_from_web["Value"]["IP_address"].size() ;
-                    function_amount = arg_from_web["Command_Name"].size() ;
+                    function_amount = arg_from_web["Command_Name"].size() ; // get the amount of action.
 
                     if ( action == "Write" )
                         rw_flag = 2;
@@ -3557,7 +3579,7 @@ return_ok:
 //                    SQL_Open();
 //                    j_response = json_SQL_GetAnchors_info();
 
-                    json j_arg = arg_from_web["Value"] ;
+                    json j_arg = arg_from_web["Value"] ; // get the parameters for database.
 
 
                     for ( int i = 0 ; i < function_amount ; i++ )
@@ -3602,7 +3624,11 @@ return_ok:
 
             /***********
             dir:
+
+            Part of get the web resource request and return resource file.
+            like :
             /js/*.* & /css/*.* & /image/*.*
+
             /**********/
             else if (strstr((char*)testbuff, "/" ) != 0 )
             {
@@ -3818,7 +3844,7 @@ void pre_loc2()
 void loc_run2()
 {
 
-
+    // Load .so ( UPOS Library ) *******
     void *handle = nullptr;
     cout << "C++ dlopen" << endl;
     // 打开库文件
@@ -3833,9 +3859,7 @@ void loc_run2()
     }
     // 加载符号表
     cout << "Loading symbol caculate..." << endl;
-
-
-
+    // Load .so END *******
 
 
 
@@ -3876,9 +3900,18 @@ void loc_run2()
 //                //cout << "record count :"<<coordinate_record_count << endl;
                 Location_Point_display(Tag_record_info, coordinate_record_count, Tag_Status_record_info, status_record_count);
 
-//                check_locus_index();
+
+
+                // create index for locus record *******
+                // check_locus_index();
+                // each hour , get id of the first record in each hour, and use the id to create index.
                 check_locus_index_hour();
+
+                // each min , get id of the first record in each minute, and use the id to create index.
                 check_locus_index_hour_min();
+
+                // Because still not determining which method to use, so reserving above ( hour / min ).
+                // create index END *******
 
 
                 usleep(100000);
@@ -4099,7 +4132,7 @@ int main()
     if ( _using_SQL() )
     {
         SQL_Init();
-        if ( Construct_sql_cmd() )
+        if ( Construct_sql_cmd() ) // create DB table
             _SQL_flag = true ;
         else
         {

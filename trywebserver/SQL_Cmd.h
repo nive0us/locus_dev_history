@@ -62,6 +62,9 @@ int SQL_AddEvent( Statement *&state, string tag_id, string status, string time )
 
 int SQL_AddStaff( Statement *&state, json func_arg ) ;
 int SQL_AddDepartment( Statement *&state, json func_arg ) ;
+int SQL_EditDepartment( Statement *&state, json func_arg ) ;
+int SQL_DeleteDepartment( Statement *&state, string c_id ) ;
+
 
 
 int SQL_OFF_SafeUpdate( Statement *&state );
