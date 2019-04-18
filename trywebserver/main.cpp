@@ -2960,7 +2960,9 @@ void TCP_thread_Safe( SOCKET m_socket )
 
 
             /***********
+
             get html page
+
             //*********/
             else if (strstr((char*)testbuff, "html") != 0 || strstr((char*)testbuff, "GET /dashboard/html/") != 0)
             {
@@ -2988,10 +2990,48 @@ void TCP_thread_Safe( SOCKET m_socket )
                 fin.close();
                 bytesSent = send(SOCKET_temp, (const char*)binch, u, 0);
 
-
-
             }
 
+
+             /***********
+
+            get properties page
+
+            2019/04/18:
+            /properties/i18n/zh-CN/common.properties?_=1555579054345 HTTP/1.1
+
+            //*********/
+            else if (strstr((char*)testbuff, "properties/i18n") != 0 )
+            {
+
+                std::string str, response_html;
+                char* deli_str = "/" ;
+                std::string str_temp = strstr((char*)testbuff, deli_str);
+//                cout << str_temp << endl ;
+                int buff_len = strlen(strstr((char*)testbuff,  deli_str));
+//                cout << buff_len << endl ;
+                int len = buff_len - strlen(strstr((char*)testbuff, "properties?"));
+//                cout << len << endl ;
+
+                str = str_temp.substr(strlen(deli_str), len - strlen(deli_str));
+//                cout << str << endl ;
+                response_html = html_root + "/" + str + "properties" ;
+                html_temp = response_html.c_str();//StringToChar(html_str);
+
+                if ( debug_mode )
+                    cout << "properties :" << html_temp << endl ;
+
+                std::ifstream fin(html_temp, std::ios::in);
+                while (fin.get(ch))
+                {
+                    //fin.get(ch); // wrong method!!
+                    binch[u] = ch;
+                    u++;
+                }
+                fin.close();
+                bytesSent = send(SOCKET_temp, (const char*)binch, u, 0);
+
+            }
 
 
             /************************************************************

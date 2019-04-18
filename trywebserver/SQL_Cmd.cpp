@@ -104,11 +104,14 @@ string sql_create_department_relation2  = "parent VARCHAR(40), p_id INT UNSIGNED
 string sql_create_department_relation   = sql_create_table + sql_create_department_relation1 + sql_create_department_relation2 ;
 
 
-
-
 string sql_create_jobTitle_relation1  = "jobTitle_relation ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
 string sql_create_jobTitle_relation2  = "parent VARCHAR(40), p_id INT UNSIGNED, children VARCHAR(40), c_id INT UNSIGNED, color VARCHAR(10) )";
 string sql_create_jobTitle_relation   = sql_create_table + sql_create_jobTitle_relation1 + sql_create_jobTitle_relation2 ;
+
+
+string sql_create_user_type1  = "user_type ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
+string sql_create_user_type2  = "type VARCHAR(40), color VARCHAR(10) )";
+string sql_create_user_type   = sql_create_table + sql_create_user_type1 + sql_create_user_type2 ;
 
 
 int list_size = 5 ;
@@ -144,6 +147,7 @@ bool Construct_sql_cmd()
         SQL_ExecuteUpdate( sql_create_staff ) ;
         SQL_ExecuteUpdate( sql_create_department_relation ) ;
         SQL_ExecuteUpdate( sql_create_jobTitle_relation ) ;
+        SQL_ExecuteUpdate( sql_create_user_type ) ;
 //        SQL_ExecuteUpdate( sql_create_card_correspond ) ;
 
         SQL_Close();
@@ -427,6 +431,10 @@ json Call_SQL_func( string func_name, json func_arg )
             ret = json_SQL_GetDepartment_relation( state, result );
         else if ( func_name == "GetJobTitle_relation" )
             ret = json_SQL_GetJobTitle_relation( state, result );
+        else if ( func_name == "GetDepartment_relation_list" )
+            ret = json_SQL_GetDepartment_relation_list( state, result );
+        else if ( func_name == "GetJobTitle_relation_list" )
+            ret = json_SQL_GetJobTitle_relation_list( state, result );
 
 
         else if ( func_name == "GetGroup_Anchors" || func_name == "AddListGroup_Anchor" )
@@ -1258,6 +1266,99 @@ json json_SQL_GetJobTitle_relation( Statement *&state, ResultSet *&result )
     return foo ;
 }
 
+
+json json_SQL_GetDepartment_relation_list( Statement *&state, ResultSet *&result )
+{
+    json tree ;
+
+    json foo ;
+    foo["success"] = 0 ;
+    json temp ;
+    string query = "SELECT * FROM department_relation;";
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next()) // get each node from DB, and save into the temp json array.
+        {
+
+            string parent   = result->getString("parent");
+            string p_id     = result->getString("p_id");
+            string children = result->getString("children");
+            string c_id     = result->getString("c_id");
+            string color    = result->getString("color");
+
+
+            temp["parent"]      = parent;
+            temp["p_id"]        = p_id;
+            temp["children"]    = children;
+            temp["c_id"]        = c_id;
+            temp["color"]       = color;
+
+
+            tree.push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+    json ary ;
+//    Travel_tree( tree, "", ary ) ;
+//    Travel_tree_by_id( tree, "0", ary ) ;
+    foo["Values"] = tree ;
+    foo["success"] = 1 ;
+    return foo ;
+}
+
+
+json json_SQL_GetJobTitle_relation_list( Statement *&state, ResultSet *&result )
+{
+    json tree ;
+
+    json foo ;
+    foo["success"] = 0 ;
+    json temp ;
+    string query = "SELECT * FROM jobTitle_relation;";
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next()) // get each node from DB, and save into the temp json array.
+        {
+
+            string parent   = result->getString("parent");
+            string p_id     = result->getString("p_id");
+            string children = result->getString("children");
+            string c_id     = result->getString("c_id");
+            string color    = result->getString("color");
+
+
+            temp["parent"]      = parent;
+            temp["p_id"]        = p_id;
+            temp["children"]    = children;
+            temp["c_id"]        = c_id;
+            temp["color"]       = color;
+
+
+            tree.push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+    json ary ;
+//    Travel_tree( tree, "", ary ) ;
+//    Travel_tree_by_id( tree, "0", ary ) ;
+    foo["Values"] = tree ;
+    foo["success"] = 1 ;
+    return foo ;
+}
 
 json json_SQL_Return_inserted_dept_id( Statement *&state, ResultSet *&result )
 {

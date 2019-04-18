@@ -100,6 +100,8 @@ json json_SQL_Get_One_Staff( Statement *&state, ResultSet *&result , json func_a
 json json_SQL_GetStaffs( Statement *&state, ResultSet *&result );
 json json_SQL_GetDepartment_relation( Statement *&state, ResultSet *&result );
 json json_SQL_GetJobTitle_relation( Statement *&state, ResultSet *&result );
+json json_SQL_GetDepartment_relation_list( Statement *&state, ResultSet *&result );
+json json_SQL_GetJobTitle_relation_list( Statement *&state, ResultSet *&result );
 
 json json_SQL_Return_inserted_dept_id( Statement *&state, ResultSet *&result );
 json json_SQL_Return_inserted_job_id( Statement *&state, ResultSet *&result );
