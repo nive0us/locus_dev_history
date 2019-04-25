@@ -87,7 +87,7 @@ string sql_create_event     = sql_create_table + sql_create_event1 + sql_create_
 
 string sql_create_staff1    = "staff ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), number VARCHAR(40) NOT NULL, UNIQUE (number), INDEX index_staff(number), " ;
 string sql_create_staff2    = string("") + "tag_id VARCHAR(16), INDEX index_tag_id( tag_id ), Name VARCHAR(40)" + ",lastName VARCHAR(40)" + ", firstName VARCHAR(40)" + ",EnglishName VARCHAR(40) ," ;
-string sql_create_staff3    = string("") + "gender VARCHAR(10)," + "card_id VARCHAR(40)," + "status VARCHAR(40)," + "set_color VARCHAR(10)," + "department VARCHAR(40)," + "jobTitle VARCHAR(40)," +  "type VARCHAR(40),";
+string sql_create_staff3    = string("") + "gender VARCHAR(10)," + "card_id VARCHAR(40)," + "status VARCHAR(40)," + "color_type VARCHAR(10)," + "color VARCHAR(10)," + "department_id INT UNSIGNED," + "jobTitle_id INT UNSIGNED," +  "type VARCHAR(40),";
 string sql_create_staff4    = string("") + "birthday VARCHAR(10)," + "dateEntry VARCHAR(10)" + ", dateLeave VARCHAR(10)" + ", school VARCHAR(40)" + ", education VARCHAR(10)"
                               + ", phoneJob VARCHAR(20)" + ", phoneSelf VARCHAR(20)" + ", mail VARCHAR(60)" + ", address TEXT" + ", note TEXT" + ", photo BLOB" + ", exist INT"
                               + ", grade VARCHAR(20)"  +  ", tech_grade VARCHAR(20)" + ")";
@@ -109,8 +109,8 @@ string sql_create_jobTitle_relation2  = "parent VARCHAR(40), p_id INT UNSIGNED, 
 string sql_create_jobTitle_relation   = sql_create_table + sql_create_jobTitle_relation1 + sql_create_jobTitle_relation2 ;
 
 
-string sql_create_user_type1  = "user_type ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
-string sql_create_user_type2  = "type VARCHAR(40), color VARCHAR(10) )";
+string sql_create_user_type1  = "user_type (  type VARCHAR(40), PRIMARY KEY (type), " ;
+string sql_create_user_type2  = " color VARCHAR(10) )";
 string sql_create_user_type   = sql_create_table + sql_create_user_type1 + sql_create_user_type2 ;
 
 
@@ -358,12 +358,20 @@ json Call_SQL_func( string func_name, json func_arg )
                 success = SQL_AddJobTitle( state, func_arg[i] ) ;
                 ret = json_SQL_Return_inserted_job_id( state, result );
             }
+            else if ( func_name == "AddUserType" )
+            {
+                success = SQL_AddUserType( state, func_arg[i] ) ;
+//                ret = json_SQL_Return_inserted_job_id( state, result );
+            }
 
 
             else if ( func_name == "DeleteDepartment" )
                 success = SQL_DeleteDepartment( state, func_arg[i]["c_id"].get<std::string>() ) ;
             else if ( func_name == "DeleteJobTitle" )
                 success = SQL_DeleteJobTitle( state, func_arg[i]["c_id"].get<std::string>() ) ;
+            else if ( func_name == "DeleteUserType" )
+                success = SQL_DeleteUserType( state, func_arg[i]["type"].get<std::string>() ) ;
+
             else if ( func_name == "DeleteStaff" )
                 success = SQL_DeleteStaff( state, func_arg[i]["number"].get<std::string>() ) ;
 
@@ -378,7 +386,7 @@ json Call_SQL_func( string func_name, json func_arg )
                 success = SQL_multiEdit_StaffJobTitle( state, func_arg[i]["number"].get<std::string>(), func_arg[i]["jobTitle"].get<std::string>() ) ;
 
             else if ( func_name == "multiEdit_StaffSetColor")
-                success = SQL_multiEdit_StaffSetColor( state, func_arg[i]["number"].get<std::string>(), func_arg[i]["set_color"].get<std::string>() ) ;
+                success = SQL_multiEdit_StaffSetColor( state, func_arg[i]["number"].get<std::string>(), func_arg[i]["color_type"].get<std::string>() ) ;
 
         } // for
 
@@ -411,6 +419,11 @@ json Call_SQL_func( string func_name, json func_arg )
             success = SQL_EditJobTitle( state, func_arg ) ;
         }
 
+        else if ( func_name == "EditUserType" )
+        {
+            success = SQL_EditUserType( state, func_arg ) ;
+        }
+
 
 
         cout << func_name << endl ;
@@ -435,6 +448,8 @@ json Call_SQL_func( string func_name, json func_arg )
             ret = json_SQL_GetDepartment_relation_list( state, result );
         else if ( func_name == "GetJobTitle_relation_list" )
             ret = json_SQL_GetJobTitle_relation_list( state, result );
+        else if ( func_name == "GetUserTypes" )
+            ret = json_SQL_GetUserTypes( state, result );
 
 
         else if ( func_name == "GetGroup_Anchors" || func_name == "AddListGroup_Anchor" )
@@ -561,9 +576,9 @@ int SQL_AddEvent( Statement *&state, string tag_id, string status, string time )
 
 
 
-int SQL_multiEdit_StaffDepartment( Statement *&state, string number, string department )
+int SQL_multiEdit_StaffDepartment( Statement *&state, string number, string department_id )
 {
-    string query = "UPDATE staff SET department = '" + department + "' where number = '" +  number + "' ;" ;
+    string query = "UPDATE staff SET department_id = '" + department_id + "' where number = '" +  number + "' ;" ;
     SQL_OFF_SafeUpdate(state);
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
@@ -575,16 +590,16 @@ int SQL_multiEdit_StaffType( Statement *&state, string number, string type )
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
-int SQL_multiEdit_StaffJobTitle( Statement *&state, string number, string jobTitle )
+int SQL_multiEdit_StaffJobTitle( Statement *&state, string number, string jobTitle_id )
 {
-    string query = "UPDATE staff SET jobTitle = '" + jobTitle + "' where number = '" +  number + "' ;" ;
+    string query = "UPDATE staff SET jobTitle_id = '" + jobTitle_id + "' where number = '" +  number + "' ;" ;
     SQL_OFF_SafeUpdate(state);
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
-int SQL_multiEdit_StaffSetColor( Statement *&state, string number, string set_color )
+int SQL_multiEdit_StaffSetColor( Statement *&state, string number, string color_type )
 {
-    string query = "UPDATE staff SET set_color = '" + set_color + "' where number = '" +  number + "' ;" ;
+    string query = "UPDATE staff SET color_type = '" + color_type + "' where number = '" +  number + "' ;" ;
     SQL_OFF_SafeUpdate(state);
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
@@ -603,10 +618,11 @@ int SQL_AddStaff( Statement *&state, json func_arg )
     string gender       = func_arg["gender"].get<std::string>() ;
     string card_id      = func_arg["card_id"].get<std::string>() ;
     string status       = func_arg["status"].get<std::string>() ;
-    string set_color    = func_arg["set_color"].get<std::string>() ;
-    string department   = func_arg["department"].get<std::string>() ;
+    string color_type   = func_arg["color_type"].get<std::string>() ;
+    string color        = func_arg["color"].get<std::string>() ;
+    string department_id= func_arg["department_id"].get<std::string>() ;
 
-    string jobTitle     = func_arg["jobTitle"].get<std::string>() ;
+    string jobTitle_id  = func_arg["jobTitle_id"].get<std::string>() ;
     string type         = func_arg["type"].get<std::string>() ;
     string birthday     = func_arg["birthday"].get<std::string>() ;
     string dateEntry    = func_arg["dateEntry"].get<std::string>() ;
@@ -637,9 +653,10 @@ int SQL_AddStaff( Statement *&state, json func_arg )
     // id, number, tag_id, Name, lastName, firstName, EnglishName, gender, card_id, status, department, jobTitle, type, birthday, photo, note
 
     string query = string("") + "INSERT INTO staff VALUES ( '0','" + number + "','" + tag_id + "','" +  Name + "','" +  lastName + "','" + firstName  + "','" +
-                   EnglishName + "','" + gender + "','" + card_id + "','" +  status + "','" + set_color + "','" + department + "','" + jobTitle + "','" + type + "','" +
-                   birthday + "','" + dateEntry + "','" + dateLeave + "','" + school + "','" + education + "','" + phoneJob + "','" + phoneSelf + "','" +
-                   mail + "','" + address + "','" + note + "','" + photo + "','" + exist + "','" + grade + "','" + tech_grade + "' );" ;
+                   EnglishName + "','" + gender + "','" + card_id + "','" +  status + "','" + color_type + "','" + color + "','" + department_id + "','" +
+                   jobTitle_id + "','" + type + "','" + birthday + "','" + dateEntry + "','" + dateLeave + "','" + school + "','" + education + "','" +
+                   phoneJob + "','" + phoneSelf + "','" + mail + "','" + address + "','" + note + "','" + photo + "','" + exist + "','" + grade + "','" +
+                   tech_grade + "' );" ;
 
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
@@ -682,6 +699,20 @@ int SQL_AddJobTitle( Statement *&state, json func_arg )
 }
 
 
+int SQL_AddUserType( Statement *&state, json func_arg )
+{
+
+    string type     = func_arg["type"].get<std::string>() ;
+    string color    = func_arg["color"].get<std::string>() ;
+
+//    string query0 = "SET @last_id_in_table = (SELECT AUTO_INCREMENT  FROM information_schema.tables WHERE table_name = 'user_type' AND table_schema = DATABASE() );" ;
+//    SQL_ExecuteUpdate_single( state, query0 ) ;
+    string query = string("") + "INSERT INTO user_type VALUES ( '" + type + "','" + color  + "' );" ;
+
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+
 int SQL_EditDepartment( Statement *&state, json func_arg )
 {
 
@@ -714,6 +745,21 @@ int SQL_EditJobTitle( Statement *&state, json func_arg )
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
+int SQL_EditUserType( Statement *&state, json func_arg )
+{
+
+//    string t_id         = func_arg["t_id"].get<std::string>() ;
+    string type         = func_arg["type"].get<std::string>() ;
+    string color        = func_arg["color"].get<std::string>() ;
+//    string new_name     = func_arg["new_name"].get<std::string>() ;
+
+
+//    string query = string("") + "UPDATE user_type SET type = '" + type + "', color = '" + color + "' where t_id = '" +  t_id + "' ;" ;
+    string query = string("") + "UPDATE user_type SET color = '" + color + "' where type = '" +  type + "' ;" ;
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
 int SQL_DeleteDepartment( Statement *&state, string c_id )
 {
     string query = string("") + "delete from department_relation where c_id = \"" + c_id + "\";";
@@ -724,6 +770,13 @@ int SQL_DeleteDepartment( Statement *&state, string c_id )
 int SQL_DeleteJobTitle( Statement *&state, string c_id )
 {
     string query = string("") + "delete from jobTitle_relation where c_id = \"" + c_id + "\";";
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+int SQL_DeleteUserType( Statement *&state, string type )
+{
+    string query = string("") + "delete from user_type where type = \"" + type + "\";";
     SQL_OFF_SafeUpdate(state);
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
@@ -961,76 +1014,93 @@ json json_SQL_Get_One_Staff( Statement *&state, ResultSet *&result, json func_ar
     string query = "SELECT * FROM staff where number = '" + target + "' ;";
     try
     {
+
         result = state->executeQuery(query);
-        while (result->next())
+        if (result->next())
         {
 
-            string tag_id = result->getString("tag_id");
-            string number = result->getString("number");
-            string Name = result->getString("Name");
-            string department = result->getString("department");
-            string type = result->getString("type");
-            string note = result->getString("note");
+            string tag_id       = result->getString("tag_id");
+            string number       = result->getString("number");
+            string Name         = result->getString("Name");
+            string department_id= result->getString("department_id");
+            string type         = result->getString("type");
+            string note         = result->getString("note");
 
-            string lastName = result->getString("lastName");
-            string firstName = result->getString("firstName");
-            string EnglishName = result->getString("EnglishName");
-            string gender = result->getString("gender");
-            string card_id = result->getString("card_id");
+            string lastName     = result->getString("lastName");
+            string firstName    = result->getString("firstName");
+            string EnglishName  = result->getString("EnglishName");
+            string gender       = result->getString("gender");
+            string card_id      = result->getString("card_id");
 
-            string status = result->getString("status");
-            string set_color = result->getString("set_color");
-            string jobTitle = result->getString("jobTitle");
-            string birthday = result->getString("birthday");
+            string status       = result->getString("status");
+            string color_type    = result->getString("color_type");
+            string color        = result->getString("color");
+            string jobTitle_id  = result->getString("jobTitle_id");
+            string birthday     = result->getString("birthday");
 
-            string dateEntry = result->getString("dateEntry");
-            string dateLeave = result->getString("dateLeave");
-            string school = result->getString("school");
-            string education = result->getString("education");
+            string dateEntry    = result->getString("dateEntry");
+            string dateLeave    = result->getString("dateLeave");
+            string school       = result->getString("school");
+            string education    = result->getString("education");
 
-            string phoneJob = result->getString("phoneJob");
-            string phoneSelf = result->getString("phoneSelf");
-            string mail = result->getString("mail");
+            string phoneJob     = result->getString("phoneJob");
+            string phoneSelf    = result->getString("phoneSelf");
+            string mail         = result->getString("mail");
 
-            string address = result->getString("address");
-            string photo = result->getString("photo");
-            string exist = result->getString("exist");
-            string grade = result->getString("grade");
-            string tech_grade = result->getString("tech_grade");
+            string address      = result->getString("address");
+            string photo        = result->getString("photo");
+            string exist        = result->getString("exist");
+            string grade        = result->getString("grade");
+            string tech_grade   = result->getString("tech_grade");
 
 
-            temp["tag_id"] = tag_id;
-            temp["number"] = number;
-            temp["Name"] = Name;
-            temp["department"] = department;
-            temp["type"] = type;
-            temp["note"] = note;
+            string query1 = "", query2 = "", department = "", jobTitle = "" ;
+            query1 = "select * from department_relation where c_id = " + department_id + ";" ;
+            query2 = "select * from jobTitle_relation where c_id = " + jobTitle_id + ";" ;
+            result = state->executeQuery(query1);
+            if (result->next())
+                department = result->getString("children");
 
-            temp["lastName"] = lastName;
-            temp["firstName"] = firstName;
+            result = state->executeQuery(query2);
+            if (result->next())
+                jobTitle = result->getString("children");
+
+
+            temp["tag_id"]      = tag_id;
+            temp["number"]      = number;
+            temp["Name"]        = Name;
+            temp["department_id"]   = department_id;
+            temp["department"]  = department;
+            temp["type"]        = type;
+            temp["note"]        = note;
+
+            temp["lastName"]    = lastName;
+            temp["firstName"]   = firstName;
             temp["EnglishName"] = EnglishName;
-            temp["gender"] = gender;
-            temp["card_id"] = card_id;
+            temp["gender"]      = gender;
+            temp["card_id"]     = card_id;
 
-            temp["status"] = status;
-            temp["set_color"] = set_color;
-            temp["jobTitle"] = jobTitle;
-            temp["birthday"] = birthday;
+            temp["status"]      = status;
+            temp["color_type"]  = color_type;
+            temp["color"]       = color;
+            temp["jobTitle_id"] = jobTitle_id;
+            temp["jobTitle"]    = jobTitle;
+            temp["birthday"]    = birthday;
 
-            temp["dateEntry"] = dateEntry;
-            temp["dateLeave"] = dateLeave;
-            temp["school"] = school;
-            temp["education"] = education;
+            temp["dateEntry"]   = dateEntry;
+            temp["dateLeave"]   = dateLeave;
+            temp["school"]      = school;
+            temp["education"]   = education;
 
-            temp["phoneJob"] = phoneJob;
-            temp["phoneSelf"] = phoneSelf;
-            temp["mail"] = mail;
+            temp["phoneJob"]    = phoneJob;
+            temp["phoneSelf"]   = phoneSelf;
+            temp["mail"]        = mail;
 
-            temp["address"] = address;
-            temp["photo"] = photo;
-            temp["exist"] = exist;
-            temp["grade"] = grade;
-            temp["tech_grade"] = tech_grade;
+            temp["address"]     = address;
+            temp["photo"]       = photo;
+            temp["exist"]       = exist;
+            temp["grade"]       = grade;
+            temp["tech_grade"]  = tech_grade;
 
 
             foo["Values"].push_back(temp);
@@ -1055,26 +1125,115 @@ json json_SQL_GetStaffs( Statement *&state, ResultSet *&result )
     json foo;
     foo["success"] = 0 ;
     json temp ;
-    string query = "SELECT * FROM staff ORDER BY number;";
+//    string query = "SELECT * FROM staff ORDER BY number;";
+    string query = string("") + "select number," +  "tag_id, Name, lastName, firstName, EnglishName, gender, card_id, status, color_type, c.color, department_id," +
+                   "jobTitle_id, type, birthday, dateEntry, dateLeave, school, education, phoneJob, phoneSelf, mail, address, note, photo, exist," +
+                   "grade, tech_grade, e.children as department, e.color  as department_color, jobTitle, jobTitle_color from (" +
+                   "SELECT number, tag_id, Name, lastName, firstName, EnglishName, gender, card_id, status, color_type, a.color," +
+                   "department_id, jobTitle_id, type, birthday, dateEntry, dateLeave, school, education, phoneJob," +
+                   "phoneSelf, mail, address, note, photo, exist, grade, tech_grade, children as jobTitle, b.color as jobTitle_color FROM (" +
+                   "SELECT * FROM staff )a left join jobTitle_relation b on b.c_id = a.jobTitle_id " +
+                   ")c left join department_relation e on e.c_id = c.department_id ;" ;
     try
     {
         result = state->executeQuery(query);
         while (result->next())
         {
 
-            string tag_id = result->getString("tag_id");
-            string number = result->getString("number");
-            string Name = result->getString("Name");
-            string department = result->getString("department");
-            string type = result->getString("type");
-            string note = result->getString("note");
+            string number       = result->getString("number");
+            string tag_id       = result->getString("tag_id");
+            string Name         = result->getString("Name");
+            string lastName     = result->getString("lastName");
+            string firstName    = result->getString("firstName");
 
-            temp["tag_id"] = tag_id;
-            temp["number"] = number;
-            temp["Name"] = Name;
-            temp["department"] = department;
-            temp["type"] = type;
-            temp["note"] = note;
+            string EnglishName  = result->getString("EnglishName");
+            string gender       = result->getString("gender");
+            string card_id      = result->getString("card_id");
+            string status       = result->getString("status");
+
+            string department_id= result->getString("department_id");
+            string jobTitle_id  = result->getString("jobTitle_id");
+            string type         = result->getString("type");
+            string birthday     = result->getString("birthday");
+            string dateEntry    = result->getString("dateEntry");
+
+            string dateLeave    = result->getString("dateLeave");
+            string school       = result->getString("school");
+            string education    = result->getString("education");
+            string phoneJob     = result->getString("phoneJob");
+            string phoneSelf    = result->getString("phoneSelf");
+
+            string mail         = result->getString("mail");
+            string address      = result->getString("address");
+            string note         = result->getString("note");
+            string photo        = result->getString("photo");
+            string exist        = result->getString("exist");
+
+            string grade        = result->getString("grade");
+            string tech_grade   = result->getString("tech_grade");
+
+            string department   = result->getString("department");
+            string department_color = result->getString("department_color");
+            string jobTitle     = result->getString("jobTitle");
+            string jobTitle_color   = result->getString("jobTitle_color");
+
+            string color_type   = result->getString("color_type");
+            string color        = result->getString("color");
+
+
+
+//            string query1 = "", query2 = "" , department = "", jobTitle = "" ;
+//            query1 = "select * from department_relation where c_id = " + department_id + ";" ;
+//            query2 = "select * from jobTitle_relation where c_id = " + jobTitle_id + ";" ;
+//            result = state->executeQuery(query1);
+//            if (result->next())
+//                department = result->getString("children");
+//
+//            result = state->executeQuery(query2);
+//            if (result->next())
+//                jobTitle = result->getString("children");
+
+            temp["number"]      = number;
+            temp["tag_id"]      = tag_id;
+            temp["Name"]        = Name;
+            temp["lastName"]    = lastName;
+            temp["firstName"]   = firstName;
+
+            temp["EnglishName"] = EnglishName;
+            temp["gender"]      = gender;
+            temp["card_id"]     = card_id;
+            temp["status"]      = status;
+
+            temp["department_id"]= department_id;
+            temp["jobTitle_id"] = jobTitle_id;
+            temp["type"]        = type;
+            temp["birthday"]    = birthday;
+            temp["dateEntry"]   = dateEntry;
+
+            temp["dateLeave"]   = dateLeave;
+            temp["school"]      = school;
+            temp["education"]   = education;
+            temp["phoneJob"]    = phoneJob;
+            temp["phoneSelf"]   = phoneSelf;
+
+            temp["mail"]        = mail;
+            temp["address"]     = address;
+            temp["note"]        = note;
+            temp["photo"]       = photo;
+            temp["exist"]       = exist;
+
+            temp["grade"]       = grade;
+            temp["tech_grade"]  = tech_grade;
+
+            temp["department"]  = department;
+            temp["department_color"]    = department_color;
+            temp["jobTitle"]    = jobTitle;
+            temp["jobTitle_color"]  = jobTitle_color;
+
+            temp["color_type"]  = color_type;
+            temp["color"]       = color;
+
+
 
             foo["Values"].push_back(temp);
             temp.clear();
@@ -1360,6 +1519,41 @@ json json_SQL_GetJobTitle_relation_list( Statement *&state, ResultSet *&result )
     return foo ;
 }
 
+
+json json_SQL_GetUserTypes( Statement *&state, ResultSet *&result )
+{
+    json tree ;
+
+    json foo ;
+    foo["success"] = 0 ;
+    json temp ;
+    string query = "SELECT * FROM user_type;";
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next()) // get each node from DB, and save into the temp json array.
+        {
+            string type     = result->getString("type");
+            string color    = result->getString("color");
+
+            temp["type"]    = type;
+            temp["color"]   = color;
+
+            tree.push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+    foo["Values"] = tree ;
+    foo["success"] = 1 ;
+    return foo ;
+}
+
 json json_SQL_Return_inserted_dept_id( Statement *&state, ResultSet *&result )
 {
     json tree ;
@@ -1373,20 +1567,8 @@ json json_SQL_Return_inserted_dept_id( Statement *&state, ResultSet *&result )
         result = state->executeQuery(query);
         while (result->next())
         {
-
-//            string parent   = result->getString("parent");
-//            string p_id     = result->getString("p_id");
-//            string children = result->getString("children");
             string c_id     = result->getString("c_id");
-//            string color    = result->getString("color");
-
             temp["c_id"]        = c_id;
-//            temp["parent"]      = parent;
-//            temp["p_id"]        = p_id;
-//            temp["children"]    = children;
-//
-//            temp["color"]       = color;
-
             tree = temp ;
 //            tree.push_back(temp);
             temp.clear();
@@ -1398,10 +1580,6 @@ json json_SQL_Return_inserted_dept_id( Statement *&state, ResultSet *&result )
         return foo ;
     }
 
-//    json ary ;
-//    Travel_tree( tree, "", ary ) ;
-//    Travel_tree_by_id( tree, "0", ary ) ;
-//    foo["Values"] = ary ;
     foo["Values"] = tree ;
     foo["success"] = 1 ;
     return foo ;
@@ -1421,20 +1599,8 @@ json json_SQL_Return_inserted_job_id( Statement *&state, ResultSet *&result )
         result = state->executeQuery(query);
         while (result->next())
         {
-
-//            string parent   = result->getString("parent");
-//            string p_id     = result->getString("p_id");
-//            string children = result->getString("children");
             string c_id     = result->getString("c_id");
-//            string color    = result->getString("color");
-
             temp["c_id"]        = c_id;
-//            temp["parent"]      = parent;
-//            temp["p_id"]        = p_id;
-//            temp["children"]    = children;
-//
-//            temp["color"]       = color;
-
             tree = temp ;
 //            tree.push_back(temp);
             temp.clear();
@@ -1446,10 +1612,6 @@ json json_SQL_Return_inserted_job_id( Statement *&state, ResultSet *&result )
         return foo ;
     }
 
-//    json ary ;
-//    Travel_tree( tree, "", ary ) ;
-//    Travel_tree_by_id( tree, "0", ary ) ;
-//    foo["Values"] = ary ;
     foo["Values"] = tree ;
     foo["success"] = 1 ;
     return foo ;
@@ -1472,15 +1634,13 @@ json json_SQL_GetGroup_Anchors( Statement *&state, ResultSet *&result )
         result = state->executeQuery(query);
         while (result->next())
         {
-            //string id = result->getString("id");
-            string group_id = result->getString("group_id");
-            string main_anchor_id = result->getString("main_anchor_id");
-            string anchor_id = result->getString("anchor_id");
+            string group_id         = result->getString("group_id");
+            string main_anchor_id   = result->getString("main_anchor_id");
+            string anchor_id        = result->getString("anchor_id");
 
-            //temp["id"] = id;
-            temp["group_id"] = group_id;
-            temp["main_anchor_id"] = main_anchor_id;
-            temp["anchor_id"] = anchor_id;
+            temp["group_id"]        = group_id;
+            temp["main_anchor_id"]  = main_anchor_id;
+            temp["anchor_id"]       = anchor_id;
             foo["Values"].push_back(temp);
             temp.clear();
 
@@ -1510,15 +1670,11 @@ json json_SQL_GetMap_Groups( Statement *&state, ResultSet *&result )
         result = state->executeQuery(query);
         while (result->next())
         {
-            //string id = result->getString("id");
-            string map_id = result->getString("map_id");
-            string group_id = result->getString("group_id");
-//            string anchor_id = result->getString("anchor_id");
+            string map_id       = result->getString("map_id");
+            string group_id     = result->getString("group_id");
 
-            //temp["id"] = id;
-            temp["map_id"] = map_id;
-            temp["group_id"] = group_id;
-//            temp["anchor_id"] = anchor_id;
+            temp["map_id"]      = map_id;
+            temp["group_id"]    = group_id;
             foo["Values"].push_back(temp);
             temp.clear();
 
@@ -1547,13 +1703,13 @@ json json_SQL_GetTags_info( Statement *&state, ResultSet *&result )
         result = state->executeQuery(query);
         while (result->next())
         {
-            string tag_id = result->getString("tag_id");
-            string tag_name = result->getString("tag_name");
-            string pic_path = result->getString("pic_path");
+            string tag_id       = result->getString("tag_id");
+            string tag_name     = result->getString("tag_name");
+            string pic_path     = result->getString("pic_path");
 
-            temp["tag_id"] = tag_id;
-            temp["tag_name"] = tag_name;
-            temp["pic_path"] = pic_path;
+            temp["tag_id"]      = tag_id;
+            temp["tag_name"]    = tag_name;
+            temp["pic_path"]    = pic_path;
 
             foo["Values"].push_back(temp);
             temp.clear();
@@ -1841,13 +1997,13 @@ json json_SQL_GetSingleLocus( Statement *&state, string tag_id, string start_dat
         result = state->executeQuery(query);
         while (result->next())
         {
-            string coordinate_x = result->getString("coordinate_x");
-            string coordinate_y = result->getString("coordinate_y");
-            string group_id = result->getString("group_id");
+            string coordinate_x     = result->getString("coordinate_x");
+            string coordinate_y     = result->getString("coordinate_y");
+            string group_id         = result->getString("group_id");
 
-            temp["coordinate_x"] = coordinate_x;
-            temp["coordinate_y"] = coordinate_y;
-            temp["group_id"] = group_id;
+            temp["coordinate_x"]    = coordinate_x;
+            temp["coordinate_y"]    = coordinate_y;
+            temp["group_id"]        = group_id;
 
             foo["Values"].push_back(temp);
             temp.clear();
@@ -1865,12 +2021,12 @@ json json_SQL_GetSingleLocus( Statement *&state, string tag_id, string start_dat
         else
             flag = "calculate date error" ;
 
-        foo["start_date"] = start_date;
-        foo["start_time"] = "00:00:00";
-        foo["end_date"] = end_date;
-        foo["end_time"] = end_time;
-        foo["Status"] = flag ;
-        foo["tag_id"] = tag_id ;
+        foo["start_date"]   = start_date;
+        foo["start_time"]   = "00:00:00";
+        foo["end_date"]     = end_date;
+        foo["end_time"]     = end_time;
+        foo["Status"]       = flag ;
+        foo["tag_id"]       = tag_id ;
     }
     catch(sql::SQLException& e)
     {

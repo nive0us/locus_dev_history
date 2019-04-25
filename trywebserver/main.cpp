@@ -2772,7 +2772,7 @@ void TCP_thread_Safe( SOCKET m_socket )
             unsigned char deli_arg[buf_len] = { 0 };
             memset(deli_arg, 0, sizeof(deli_arg));
 
-            //cout << "Original :" << endl <<testbuff << ""<< endl ;
+//            cout << "Original :" << endl <<testbuff << ""<< endl ;
             /*
             for ( int i = 0 ; i < strlen((char*)testbuff) ; i++ )
                 printf( "%d ", testbuff[i] ) ;
@@ -3587,6 +3587,7 @@ return_ok:
                 {
                     stringstream json_part ;
                     json_part << deli_arg ; // char* to stringstream
+//                    cout << testbuff << endl ;
 //                    cout << "stream:"<< json_part.str() << endl ; // stringstream to string
 //                    cout << ":::::" <<endl ;
                     auto arg_from_web = json::parse(json_part.str()); // string to json parser

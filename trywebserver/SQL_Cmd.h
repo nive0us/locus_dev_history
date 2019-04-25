@@ -72,12 +72,15 @@ int SQL_EditJobTitle( Statement *&state, json func_arg ) ;
 int SQL_DeleteJobTitle( Statement *&state, string c_id ) ;
 
 
+int SQL_AddUserType( Statement *&state, json func_arg ) ;
+int SQL_EditUserType( Statement *&state, json func_arg ) ;
+int SQL_DeleteUserType( Statement *&state, string type ) ;
 
 
-int SQL_multiEdit_StaffDepartment( Statement *&state, string number, string department ) ;
+int SQL_multiEdit_StaffDepartment( Statement *&state, string number, string department_id ) ;
 int SQL_multiEdit_StaffType( Statement *&state, string number, string type ) ;
-int SQL_multiEdit_StaffJobTitle( Statement *&state, string number, string jobTitle ) ;
-int SQL_multiEdit_StaffSetColor( Statement *&state, string number, string set_color ) ;
+int SQL_multiEdit_StaffJobTitle( Statement *&state, string number, string jobTitle_id ) ;
+int SQL_multiEdit_StaffSetColor( Statement *&state, string number, string color_type ) ;
 
 
 
@@ -102,6 +105,7 @@ json json_SQL_GetDepartment_relation( Statement *&state, ResultSet *&result );
 json json_SQL_GetJobTitle_relation( Statement *&state, ResultSet *&result );
 json json_SQL_GetDepartment_relation_list( Statement *&state, ResultSet *&result );
 json json_SQL_GetJobTitle_relation_list( Statement *&state, ResultSet *&result );
+json json_SQL_GetUserTypes( Statement *&state, ResultSet *&result );
 
 json json_SQL_Return_inserted_dept_id( Statement *&state, ResultSet *&result );
 json json_SQL_Return_inserted_job_id( Statement *&state, ResultSet *&result );
