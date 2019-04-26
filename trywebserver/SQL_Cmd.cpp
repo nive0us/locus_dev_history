@@ -435,6 +435,9 @@ json Call_SQL_func( string func_name, json func_arg )
         else if ( func_name == "GetMaps" || func_name == "AddListMap" )
             ret = json_SQL_GetMaps( state, result );
 
+        else if ( func_name == "GetOneStaffPhoto" )
+            ret = json_SQL_GetOneStaffPhoto( state, result, func_arg ) ;
+
 
         else if ( func_name == "GetOneStaff" )
             ret = json_SQL_Get_One_Staff( state, result, func_arg ) ;
@@ -636,11 +639,23 @@ int SQL_AddStaff( Statement *&state, json func_arg )
 
     string address      = func_arg["address"].get<std::string>() ;
     string note         = func_arg["note"].get<std::string>() ;
-    string photo        = func_arg["photo"].get<std::string>() ;
+//    string photo        = func_arg["photo"].get<std::string>() ;
     string exist        = func_arg["exist"].get<std::string>() ;
 
     string grade        = func_arg["grade"].get<std::string>() ;
     string tech_grade   = func_arg["tech_grade"].get<std::string>() ;
+
+    string str_b64      = func_arg["photo"].get<std::string>() ;
+    string decoded      = base64_decode(str_b64);
+
+//    string str_bin = "";
+//    for ( int i = 0 ;  i <(int)decoded.length() ; i++ )
+//    {
+//        bitset<8>b(decoded[i]) ;
+//        str_bin += b.to_string();
+//    }
+    string photo        = str_b64;
+    cout << "?????" << endl ;
 
     /*
     "staff ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), number VARCHAR(40) NOT NULL, UNIQUE (number), INDEX index_staff(number), " ;
@@ -989,6 +1004,65 @@ json json_SQL_GetMaps( Statement *&state, ResultSet *&result )
             temp["map_name"] = map_name;
             temp["map_path"] = map_path;
             //temp["time"] = time;
+
+            foo["Values"].push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+    foo["success"] = 1 ;
+    return foo ;
+}
+
+json json_SQL_GetOneStaffPhoto( Statement *&state, ResultSet *&result, json func_arg )
+{
+    json foo;
+    foo["success"] = 0 ;
+    json temp ;
+    string target = func_arg["number"].get<std::string>() ;
+    string query = "SELECT * FROM staff where number = '" + target + "' ;";
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next())
+        {
+//            vector<char> vec;
+//            string  photo  = result->getString("photo");
+//            vec.insert(vec.end(), photo.begin(), photo.end());
+//            cout << photo << endl ;
+//            temp["photo"] = vec;
+
+            string photo  = result->getString("photo");
+
+            /*
+            const std::string s = "ADP GmbH\nAnalyse Design & Programmierung\nGesellschaft mit beschränkter Haftung" ;
+            std::string encoded = base64_encode(reinterpret_cast<const unsigned char*>(s.c_str()), s.length());
+            std::string decoded = base64_decode(encoded);
+            std::cout << "encoded: " << encoded << std::endl;
+            std::cout << "decoded: " << decoded << std::endl;
+            //*/
+
+            /*
+            string str_bin = "" ;
+            // binary string
+            for ( int i = 0 ;  i <(int)photo.length() ; i++ )
+            {
+                bitset<8>b(photo[i]) ;
+                str_bin += b.to_string();
+            }
+            cout << str_bin << endl ;
+            //*/
+
+
+            std::string encoded = base64_encode(reinterpret_cast<const unsigned char*>(photo.c_str()), photo.length());
+            std::cout << "encoded: " << encoded << std::endl;
+
+            temp["photo"] = encoded;
 
             foo["Values"].push_back(temp);
             temp.clear();

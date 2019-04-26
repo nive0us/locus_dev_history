@@ -3,6 +3,8 @@
 #include <iostream>
 #include <map>
 
+#include <bitset>
+#include "base64.h"
 #include "DBPool.h"
 #include <stdio.h>
 #include <locale.h>
@@ -98,8 +100,10 @@ json json_SQL_GetAnchors_info( Statement *&state, ResultSet *&result );
 json json_SQL_GetGroups_info( Statement *&state, ResultSet *&result );
 json json_SQL_GetMaps( Statement *&state, ResultSet *&result );
 
+json json_SQL_GetOneStaffPhoto( Statement *&state, ResultSet *&result, json func_arg );
 
-json json_SQL_Get_One_Staff( Statement *&state, ResultSet *&result , json func_arg );
+
+json json_SQL_Get_One_Staff( Statement *&state, ResultSet *&result, json func_arg );
 json json_SQL_GetStaffs( Statement *&state, ResultSet *&result );
 json json_SQL_GetDepartment_relation( Statement *&state, ResultSet *&result );
 json json_SQL_GetJobTitle_relation( Statement *&state, ResultSet *&result );

@@ -2707,7 +2707,7 @@ void TCP_thread_Safe( SOCKET m_socket )
     if ( debug_mode )
         cout << "TCP thread" << endl ;
 
-    int buf_len = 2000 ;
+    int buf_len = 2000000 ;
 
     unsigned char testbuff[buf_len] = { 0 };
     int timeout_count = 0;
@@ -2772,7 +2772,7 @@ void TCP_thread_Safe( SOCKET m_socket )
             unsigned char deli_arg[buf_len] = { 0 };
             memset(deli_arg, 0, sizeof(deli_arg));
 
-//            cout << "Original :" << endl <<testbuff << ""<< endl ;
+            cout << "Original :" << endl <<testbuff << ""<< endl ;
             /*
             for ( int i = 0 ; i < strlen((char*)testbuff) ; i++ )
                 printf( "%d ", testbuff[i] ) ;

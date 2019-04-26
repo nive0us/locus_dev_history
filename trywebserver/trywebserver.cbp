@@ -58,6 +58,8 @@
 		<Unit filename="TCP.h" />
 		<Unit filename="UDP.cpp" />
 		<Unit filename="UDP.h" />
+		<Unit filename="base64.cpp" />
+		<Unit filename="base64.h" />
 		<Unit filename="def.h" />
 		<Unit filename="main.cpp" />
 		<Unit filename="ser.h" />
