@@ -3,6 +3,7 @@
 #include <iostream>
 #include <map>
 
+#include <fstream>
 #include <bitset>
 #include "base64.h"
 #include "DBPool.h"
@@ -124,6 +125,8 @@ json json_SQL_GetSingleLocus_combine( Statement *&state, string tag_id, string s
 json json_SQL_GetSingleLocus_combine_hour( Statement *&state, string tag_id, string start_date, string start_time, string end_date, string end_time, ResultSet *&result ) ;
 json json_SQL_GetSingleLocus_combine_min( Statement *&state, string tag_id, string start_date, string start_time, string end_date, string end_time, ResultSet *&result ) ;
 
+void Request_Add2AlarmList( string temp_id, string temp_status, string temp_date_time ) ;
+json Request_GetAlarmList() ;
 
 
 void SQL_Update_locus_index( string date );

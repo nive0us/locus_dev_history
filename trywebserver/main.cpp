@@ -2539,7 +2539,7 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
         ResultSet *result = nullptr;
         if ( _SQL_flag )
             SQL_Open_single( con, state, result ) ;
-         // Init DB connect END*******
+        // Init DB connect END*******
 
 
         for (size_t i = 0; i < status_record_count; i++)
@@ -2693,7 +2693,6 @@ int load_DLL()
 
 
 
-
 //volatile int tep = 0 ;
 
 volatile bool debug_mode = false;
@@ -2707,7 +2706,7 @@ void TCP_thread_Safe( SOCKET m_socket )
     if ( debug_mode )
         cout << "TCP thread" << endl ;
 
-    int buf_len = 2000000 ;
+    int buf_len = 200000 ;
 
     unsigned char testbuff[buf_len] = { 0 };
     int timeout_count = 0;
@@ -2729,7 +2728,66 @@ void TCP_thread_Safe( SOCKET m_socket )
         if ( debug_mode )
             cout << "thread_tcp" << endl ;
         memset(testbuff, 0, sizeof(testbuff));
-        bytesRecv = recv(SOCKET_temp, (char*)testbuff + temp, 0xFFFFFF, flag);
+
+        // Original : if data too large that single recv can't receive, using next while to get ( temp = temp + ByteRecv ).
+        // bytesRecv = recv(SOCKET_temp, (char*)testbuff + temp, 0xFFFFFF, flag);
+
+        // Modify : 2019/04/30
+        // using do while loop to get total data, by one time in "while( 1 )".
+        int content_len = 0 ;
+        do
+        {
+            bytesRecv = recv(SOCKET_temp, (char*)testbuff + temp, 0xFFFFFF, flag);
+            if ( strstr((char*)testbuff, "Content-Length:" ) != 0 )
+            {
+                string str = "" ;
+                char* deli_str_ = "Content-Length:" ;
+                unsigned char deli_arg_[buf_len] = { 0 };
+                std::string str_temp = strstr((char*)testbuff, deli_str_);
+//                cout << "str_temp :" << str_temp << endl ;
+                int buff_len = strlen(strstr((char*)testbuff,  deli_str_));
+//                cout << "buff_len :" << buff_len << endl ;
+
+                int start_loc = strcspn((char*)testbuff, deli_str_);
+                int len = buff_len - strlen(strstr((char*)testbuff, "\r\n"));
+                //cout << "strlen :" << strlen(strstr((char*)testbuff, "\r\n")) << endl ;
+                str = str_temp.substr(strlen(deli_str_)+1, len - strlen(deli_str_));
+//                cout << "str :" << str << endl ;
+
+
+                int w_count = 0 ;
+                int w_index = 0 ;
+                unsigned char tmp_ret[10] = { 0 };
+                unsigned char tmp_buf[10] = { 0 };
+                strcpy( (char*)tmp_buf, str.c_str() );
+
+                for ( int i = 0 ; i < sizeof(tmp_buf) ; i++ )
+                    if ( tmp_buf[i] == 13 && tmp_buf[i+1] == 10 ) {
+                        w_index = i ;
+                        tmp_ret[i] = '\0' ;
+                        break;
+                    }
+                    else {
+                        // cout << "???>>>" << i << endl ;
+                        tmp_ret[i] = tmp_buf[i] ;
+                    }
+
+                int int_index = atoi( (char*)tmp_ret) ;
+                // cout << int_index << endl ;
+                content_len = int_index ;
+
+
+            }
+            temp = temp + bytesRecv;
+            // cout << "temp :" << temp << endl ;
+
+        }
+        while ( temp < content_len ) ;
+        // END : using do while loop to get total data, by one time in "while( 1 )".
+
+
+
+        // cout << "temp :" << temp << endl ;
         /*
                 if ( tep == 0 )
                     tep = m_socket ;
@@ -2737,6 +2795,7 @@ void TCP_thread_Safe( SOCKET m_socket )
                     cout << bytesRecv << endl ;
                 //cout << "Recv:" << bytesRecv << endl ;
                 */
+        cout << "byteRecv :" << bytesRecv << endl ;
         if (bytesRecv == -1)
             break;
         else
@@ -2772,7 +2831,7 @@ void TCP_thread_Safe( SOCKET m_socket )
             unsigned char deli_arg[buf_len] = { 0 };
             memset(deli_arg, 0, sizeof(deli_arg));
 
-            cout << "Original :" << endl <<testbuff << ""<< endl ;
+//            cout << "Original :" << endl <<testbuff << ""<< endl ;
             /*
             for ( int i = 0 ; i < strlen((char*)testbuff) ; i++ )
                 printf( "%d ", testbuff[i] ) ;
@@ -2993,7 +3052,7 @@ void TCP_thread_Safe( SOCKET m_socket )
             }
 
 
-             /***********
+            /***********
 
             get properties page
 
@@ -3756,6 +3815,8 @@ return_ok:
         }
     }
 
+//    bytesSent = send(SOCKET_temp, (const char*)testbuff, 42903, 0);
+//    usleep(100000);
     close( SOCKET_temp );// << endl ;
 
 
@@ -4031,7 +4092,8 @@ void Setting_Server_IP()
 
 
 
-string test_date_part( string date_with_hour ) {
+string test_date_part( string date_with_hour )
+{
 
     tm tm_;
     time_t t_;
@@ -4060,7 +4122,8 @@ string test_date_part( string date_with_hour ) {
     return val_out ;
 }
 
-string test_time_part ( string date_with_hour ) {
+string test_time_part ( string date_with_hour )
+{
     tm tm_;
     time_t t_;
     char buf[128]= {0};
@@ -4088,7 +4151,7 @@ string test_time_part ( string date_with_hour ) {
     return val_out ;
 }
 
-string testStr2Time_Hour( string date , string time )
+string testStr2Time_Hour( string date, string time )
 {
 
     tm tm_;

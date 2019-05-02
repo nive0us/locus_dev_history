@@ -10,7 +10,7 @@ ResultSet *g_result = nullptr;
 //Statement *g_state2 = nullptr;
 //ResultSet *g_result2 = nullptr;
 
-
+json j_response ;
 
 
 string sql_create_database  = "create database IF NOT EXISTS `PositioningSystem` character set utf8" ;
@@ -907,17 +907,17 @@ json json_SQL_GetAnchors_info( Statement *&state, ResultSet *&result )
         while (result->next())
         {
             //string id = result->getString("id");
-            string anchor_id = result->getString("anchor_id");
-            string set_x = result->getString("set_x");
-            string set_y = result->getString("set_y");
-            string anchor_type = result->getString("anchor_type");
+            string anchor_id    = result->getString("anchor_id");
+            string set_x        = result->getString("set_x");
+            string set_y        = result->getString("set_y");
+            string anchor_type  = result->getString("anchor_type");
 
 //            cout << id  << " : " << anchor_id <<" : " << set_x << ":" << set_y << endl;
             //printf( "%x\n", colum1);
             //temp["id"] = id;
-            temp["anchor_id"] = anchor_id;
-            temp["set_x"] = set_x;
-            temp["set_y"] = set_y;
+            temp["anchor_id"]   = anchor_id;
+            temp["set_x"]       = set_x;
+            temp["set_y"]       = set_y;
             temp["anchor_type"] = anchor_type;
 
             foo["Values"].push_back(temp);
@@ -950,21 +950,21 @@ json json_SQL_GetGroups_info( Statement *&state, ResultSet *&result )
         while (result->next())
         {
             //string id = result->getString("id");
-            string group_id = result->getString("group_id");
-            string main_anchor_id = result->getString("main_anchor_id");
-            string mode = result->getString("mode");
-            string mode_value = result->getString("mode_value");
-            string fence = result->getString("fence");
+            string group_id         = result->getString("group_id");
+            string main_anchor_id   = result->getString("main_anchor_id");
+            string mode             = result->getString("mode");
+            string mode_value       = result->getString("mode_value");
+            string fence            = result->getString("fence");
 
 
 //            cout << id  << " : " << anchor_id <<" : " << set_x << ":" << set_y << endl;
             //printf( "%x\n", colum1);
             //temp["id"] = id;
-            temp["group_id"] = group_id;
-            temp["main_anchor_id"] = main_anchor_id;
-            temp["mode"] = mode;
-            temp["mode_value"] = mode_value;
-            temp["fence"] = fence;
+            temp["group_id"]        = group_id;
+            temp["main_anchor_id"]  = main_anchor_id;
+            temp["mode"]            = mode;
+            temp["mode_value"]      = mode_value;
+            temp["fence"]           = fence;
 
             foo["Values"].push_back(temp);
             temp.clear();
@@ -994,15 +994,15 @@ json json_SQL_GetMaps( Statement *&state, ResultSet *&result )
         while (result->next())
         {
             //string id = result->getString("id");
-            string map_id = result->getString("map_id");
+            string map_id   = result->getString("map_id");
             string map_name = result->getString("map_name");
             string map_path = result->getString("map_path");
             //string time = result->getString("time");
 
             //temp["id"] = id;
-            temp["map_id"] = map_id;
-            temp["map_name"] = map_name;
-            temp["map_path"] = map_path;
+            temp["map_id"]      = map_id;
+            temp["map_name"]    = map_name;
+            temp["map_path"]    = map_path;
             //temp["time"] = time;
 
             foo["Values"].push_back(temp);
@@ -1018,6 +1018,31 @@ json json_SQL_GetMaps( Statement *&state, ResultSet *&result )
     foo["success"] = 1 ;
     return foo ;
 }
+
+
+bool save_photo( string file_name, string encodedData )
+{
+
+    string decodedData = base64_decode(encodedData);
+
+    int file_exten_len = strlen(strstr( decodedData.c_str(), "\r\n"));
+
+    string file_exten = "" ;
+    cout << "file_exten_len :" << file_exten_len << endl ;
+
+    file_exten = decodedData.substr( 1, file_exten_len - 1 ) ;
+    cout << "file_exten :" << file_exten << endl ;
+
+
+    ofstream outPutFile;
+    // outPutFile.open( file_name + ".jpg", ios::binary | ios::out);
+    // outPutFile.open( file_name + ".png", ios_base::out | ios_base::binary );
+    outPutFile.open( file_name + "." + file_exten, ios_base::out | ios_base::binary );
+    outPutFile.write(decodedData.c_str(), decodedData.length());
+    outPutFile.close();
+
+}
+
 
 json json_SQL_GetOneStaffPhoto( Statement *&state, ResultSet *&result, json func_arg )
 {
@@ -1058,9 +1083,13 @@ json json_SQL_GetOneStaffPhoto( Statement *&state, ResultSet *&result, json func
             cout << str_bin << endl ;
             //*/
 
-
-            std::string encoded = base64_encode(reinterpret_cast<const unsigned char*>(photo.c_str()), photo.length());
+            std::string encoded = photo ;
+//            encoded = base64_encode(reinterpret_cast<const unsigned char*>(photo.c_str()), photo.length());
             std::cout << "encoded: " << encoded << std::endl;
+
+            if ( encoded.length() > 0) {
+                save_photo( target, encoded ) ;
+            }
 
             temp["photo"] = encoded;
 
@@ -1240,7 +1269,7 @@ json json_SQL_GetStaffs( Statement *&state, ResultSet *&result )
             string mail         = result->getString("mail");
             string address      = result->getString("address");
             string note         = result->getString("note");
-            string photo        = result->getString("photo");
+//            string photo        = result->getString("photo");
             string exist        = result->getString("exist");
 
             string grade        = result->getString("grade");
@@ -1293,7 +1322,7 @@ json json_SQL_GetStaffs( Statement *&state, ResultSet *&result )
             temp["mail"]        = mail;
             temp["address"]     = address;
             temp["note"]        = note;
-            temp["photo"]       = photo;
+//            temp["photo"]       = photo;
             temp["exist"]       = exist;
 
             temp["grade"]       = grade;
@@ -1642,7 +1671,7 @@ json json_SQL_Return_inserted_dept_id( Statement *&state, ResultSet *&result )
         while (result->next())
         {
             string c_id     = result->getString("c_id");
-            temp["c_id"]        = c_id;
+            temp["c_id"]    = c_id;
             tree = temp ;
 //            tree.push_back(temp);
             temp.clear();
@@ -1674,7 +1703,7 @@ json json_SQL_Return_inserted_job_id( Statement *&state, ResultSet *&result )
         while (result->next())
         {
             string c_id     = result->getString("c_id");
-            temp["c_id"]        = c_id;
+            temp["c_id"]    = c_id;
             tree = temp ;
 //            tree.push_back(temp);
             temp.clear();
@@ -1796,6 +1825,90 @@ json json_SQL_GetTags_info( Statement *&state, ResultSet *&result )
     }
 
     foo["success"] = 1 ;
+    return foo ;
+}
+
+
+json Request_GetAlarmList()
+{
+    json foo;
+
+    foo = j_response ;
+
+    foo["success"] = 1 ;
+    return foo ;
+}
+
+void Request_Add2AlarmList( string temp_id, string temp_status, string temp_date_time )
+{
+    json foo;
+    foo["success"] = 0 ;
+    json temp ;
+
+
+
+    for ( int i = 0 ; i < j_response["Values"].size() ; i++ )
+    {
+
+        if ( j_response["Values"][i]["tag_id"] == temp_id ) // tag already in list
+        {
+            j_response["Values"][i]["tag_status"]  = temp_status;
+            j_response["Values"][i]["tag_time"]    = temp_date_time;
+        } // if
+        else
+        {
+            temp["tag_id"]      = temp_id;
+            temp["tag_status"]  = temp_status;
+            temp["tag_time"]    = temp_date_time;
+            j_response["Values"].push_back(temp);
+            temp.clear();
+        } // else
+
+    } // for
+
+
+    foo["success"] = 1 ;
+//    return foo ;
+}
+
+json Request_RemoveFromAlarmList( Statement *&state, json func_arg )
+{
+    json foo;
+    foo["success"] = 0 ;
+    json temp ;
+
+    string tmp_id       = func_arg["tag_id"].get<std::string>() ;
+    string tmp_status   = func_arg["tag_status"].get<std::string>() ;
+    string tmp_time     = func_arg["tag_time"].get<std::string>() ;
+
+    try
+    {
+        string query = "INSERT INTO event VALUES ( '0', '" + tmp_id + "', '" + tmp_status + "', '" + tmp_time + "' );";
+        SQL_ExecuteUpdate_single( state, query ) ;
+
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+
+    int act_success = 0 ;
+    for ( int i = 0 ; i < j_response["Values"].size() ; i++ )
+    {
+        if ( j_response["Values"][i]["tag_id"] == tmp_id ) // tag already in list
+        {
+            j_response["Values"][i].erase("tag_id");
+            j_response["Values"][i].erase("tag_status");
+            j_response["Values"][i].erase("tag_time");
+            act_success = 1 ;
+        } // if
+
+    } // for
+
+
+    foo["success"] = act_success ;
     return foo ;
 }
 
