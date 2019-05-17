@@ -39,6 +39,8 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="Alarm.cpp" />
+		<Unit filename="Alarm.h" />
 		<Unit filename="CRC32.cpp" />
 		<Unit filename="CRC32.h" />
 		<Unit filename="Cmd.cpp" />

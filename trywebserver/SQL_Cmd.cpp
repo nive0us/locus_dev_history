@@ -11,7 +11,7 @@ ResultSet *g_result = nullptr;
 //ResultSet *g_result2 = nullptr;
 
 json j_response ;
-
+json j_staff_list;
 
 string sql_create_database  = "create database IF NOT EXISTS `PositioningSystem` character set utf8" ;
 
@@ -25,7 +25,7 @@ string sql_create_locus     = sql_create_table + sql_create_locus1 + sql_create_
 
 
 string sql_create_map1      = "map_info ( map_id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (map_id), map_name VARCHAR(16), " ;
-string sql_create_map2      = "map_path VARCHAR(64) )";
+string sql_create_map2      = "map_path VARCHAR(64), map_scale VARCHAR(10) )";
 string sql_create_map_info  = sql_create_table + sql_create_map1 + sql_create_map2 ;
 
 
@@ -79,7 +79,7 @@ string sql_create_locus_index_min   = sql_create_table + sql_create_locus_index_
 
 
 string sql_create_event1    = "event ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), tag_id VARCHAR(16), " ;
-string sql_create_event2    = "status TINYINT, `time`datetime(2) )";
+string sql_create_event2    = "alarm_type VARCHAR(10), status VARCHAR(10), `time`datetime(2) )";
 string sql_create_event     = sql_create_table + sql_create_event1 + sql_create_event2 ;
 
 
@@ -90,7 +90,7 @@ string sql_create_staff2    = string("") + "tag_id VARCHAR(16), INDEX index_tag_
 string sql_create_staff3    = string("") + "gender VARCHAR(10)," + "card_id VARCHAR(40)," + "status VARCHAR(40)," + "color_type VARCHAR(10)," + "color VARCHAR(10)," + "department_id INT UNSIGNED," + "jobTitle_id INT UNSIGNED," +  "type VARCHAR(40),";
 string sql_create_staff4    = string("") + "birthday VARCHAR(10)," + "dateEntry VARCHAR(10)" + ", dateLeave VARCHAR(10)" + ", school VARCHAR(40)" + ", education VARCHAR(10)"
                               + ", phoneJob VARCHAR(20)" + ", phoneSelf VARCHAR(20)" + ", mail VARCHAR(60)" + ", address TEXT" + ", note TEXT" + ", photo BLOB" + ", exist INT"
-                              + ", grade VARCHAR(20)"  +  ", tech_grade VARCHAR(20)" + ")";
+                              + ", grade VARCHAR(20)"  +  ", tech_grade VARCHAR(20)" +  ", file_ext VARCHAR(5)" +")";
 string sql_create_staff     = sql_create_table + sql_create_staff1 + sql_create_staff2 + sql_create_staff3 + sql_create_staff4 ;
 
 
@@ -113,6 +113,55 @@ string sql_create_user_type1  = "user_type (  type VARCHAR(40), PRIMARY KEY (typ
 string sql_create_user_type2  = " color VARCHAR(10) )";
 string sql_create_user_type   = sql_create_table + sql_create_user_type1 + sql_create_user_type2 ;
 
+
+//********************
+/*
+string sql_create_time_group_info1  = "time_group_info ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
+string sql_create_time_group_info2  = " time_group_name VARCHAR(10), alarm_group_info_id INT UNSIGNED )";
+string sql_create_time_group_info   = sql_create_table + sql_create_time_group_info1 + sql_create_time_group_info2 ;
+// ex. this is a one time_group info : 12,time_group_name
+*/
+
+string sql_create_time_slot_info1  = "time_slot_info (  id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
+string sql_create_time_slot_info2  = " time_slot_name VARCHAR(10), Mon_start VARCHAR(10), Mon_end VARCHAR(10), Tue_start VARCHAR(10), Tue_end VARCHAR(10), " ;
+string sql_create_time_slot_info3  = " Wed_start VARCHAR(10), Wed_end VARCHAR(10), Thu_start VARCHAR(10), Thu_end VARCHAR(10), Fir_start VARCHAR(10), Fir_end VARCHAR(10), " ;
+string sql_create_time_slot_info4  = " Sat_start VARCHAR(10), Sat_end VARCHAR(10), Sun_start VARCHAR(10), Sun_end VARCHAR(10) )";
+string sql_create_time_slot_info   = sql_create_table + sql_create_time_slot_info1 + sql_create_time_slot_info2 + sql_create_time_slot_info3 + sql_create_time_slot_info4 ;
+// ex. this is a one time_slot_info : 54,time_A, 13:25:55, 18:28:65
+// ex. this is a one time_slot_info : 55,time_C, 13:25:55, 18:28:65
+
+/*
+string sql_create_time_slot_group1  = "time_slot_group (  id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
+string sql_create_time_slot_group2  = " time_group_info_id INT UNSIGNED , time_slot_id INT UNSIGNED )";
+string sql_create_time_slot_group   = sql_create_table + sql_create_time_slot_group1 + sql_create_time_slot_group2 ;
+// ex. this is a one time_slot_group (correspond) : 10, 12(time_group_id), 54(single time_slot_info_id).
+// ex. this is a one time_slot_group (correspond) : 11, 12(time_group_id), 55(single time_slot_info_id).
+//****************************/
+
+
+string sql_create_alarm_group_info1  = "alarm_group_info ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
+string sql_create_alarm_group_info2  = " alarm_group_name VARCHAR(10), time_slot_id INT UNSIGNED  )";
+string sql_create_alarm_group_info   = sql_create_table + sql_create_alarm_group_info1 + sql_create_alarm_group_info2 ;
+
+string sql_create_alarm_info1  = "alarm_info (  id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
+string sql_create_alarm_info2  = " alarm_name VARCHAR(10), alarm_value TINYINT )";
+string sql_create_alarm_info   = sql_create_table + sql_create_alarm_info1 + sql_create_alarm_info2 ;
+
+string sql_create_alarm_group1  = "alarm_group (  id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
+string sql_create_alarm_group2  = " alarm_group_info_id INT UNSIGNED , alarm_info_id INT UNSIGNED )";
+string sql_create_alarm_group   = sql_create_table + sql_create_alarm_group1 + sql_create_alarm_group2 ;
+
+
+
+// ******************** fence *****************
+string sql_create_fence_point1  = "fence_point (  id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
+string sql_create_fence_point2  = " point_x INT UNSIGNED , point_y INT UNSIGNED , map_id INT UNSIGNED , fence_id INT UNSIGNED )";
+string sql_create_fence_point   = sql_create_table + sql_create_fence_point1 + sql_create_fence_point2 ;
+
+string sql_create_fence_info1  = "fence_info (  id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
+string sql_create_fence_info2  = " fence_name VARCHAR(10) )";
+string sql_create_fence_info   = sql_create_table + sql_create_fence_info1 + sql_create_fence_info2 ;
+// ******************** fence  END *****************
 
 int list_size = 5 ;
 //string sql_cmd_list[list_size];
@@ -149,6 +198,14 @@ bool Construct_sql_cmd()
         SQL_ExecuteUpdate( sql_create_jobTitle_relation ) ;
         SQL_ExecuteUpdate( sql_create_user_type ) ;
 //        SQL_ExecuteUpdate( sql_create_card_correspond ) ;
+//        SQL_ExecuteUpdate( sql_create_time_group_info ) ;
+        SQL_ExecuteUpdate( sql_create_time_slot_info ) ;
+//        SQL_ExecuteUpdate( sql_create_time_slot_group ) ;
+
+        SQL_ExecuteUpdate( sql_create_alarm_group_info ) ;
+        SQL_ExecuteUpdate( sql_create_alarm_info ) ;
+        SQL_ExecuteUpdate( sql_create_alarm_group ) ;
+
 
         SQL_Close();
     }
@@ -325,7 +382,7 @@ json Call_SQL_func( string func_name, json func_arg )
                                          func_arg[i]["mode"].get<std::string>(), func_arg[i]["mode_value"].get<std::string>(), func_arg[i]["fence"].get<std::string>() ) ;
 
             else if ( func_name == "AddListMap" )
-                success += SQL_AddMap( state, func_arg[i]["map_id"].get<std::string>(), func_arg[i]["map_name"].get<std::string>(), func_arg[i]["map_path"].get<std::string>() ) ;
+                success += SQL_AddMap( state, func_arg[i]["map_id"].get<std::string>(), func_arg[i]["map_name"].get<std::string>(), func_arg[i]["map_path"].get<std::string>(), func_arg[i]["map_scale"].get<std::string>() ) ;
 
 
             else if ( func_name == "AddListGroup_Anchor" )
@@ -347,7 +404,15 @@ json Call_SQL_func( string func_name, json func_arg )
 //                success = SQL_DeleteMap( state, func_arg["map_id"] );
 
             else if ( func_name == "AddStaff" )
+            {
                 success = SQL_AddStaff( state, func_arg[i] ) ;
+
+                // When update a staff_info, updating the staff_list which in the ram .
+                json tmp_list = json_SQL_GetStaffs( state, result );
+                cout << tmp_list.dump(2) << endl ;
+                j_staff_list.clear() ;
+                j_staff_list = update_staff_list( tmp_list ) ;
+            }
             else if ( func_name == "AddDepartment" )
             {
                 success = SQL_AddDepartment( state, func_arg[i] ) ;
@@ -515,6 +580,22 @@ json Call_SQL_func( string func_name, json func_arg )
 
 }
 
+json update_staff_list( json from_sql_latest_list )
+{
+    json person ;
+    json people ;
+    for ( int i = 0 ; i < from_sql_latest_list["Values"].size() ; i++ )
+    {
+        person["number"]    = from_sql_latest_list["Values"][i]["number"];
+        person["tag_id"]    = from_sql_latest_list["Values"][i]["tag_id"];
+        person["Name"]      = from_sql_latest_list["Values"][i]["Name"];
+        people.push_back(person) ;
+    }
+
+    cout << people.dump(2) << endl ;
+    return people ;
+}
+
 int SQL_AddAnchor( Statement *&state, string id, string x, string y, string type )
 {
 //    INSERT INTO anchor_info VALUES ( '0','65512',  '348', '5', 'main' );
@@ -530,9 +611,9 @@ int SQL_AddGroup( Statement *&state, string group_id, string main_anchor_id, str
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
-int SQL_AddMap( Statement *&state, string map_id, string map_name, string map_path )
+int SQL_AddMap( Statement *&state, string map_id, string map_name, string map_path, string map_scale )
 {
-    string query = "INSERT INTO map_info VALUES ( '" + map_id + "', '" + map_name + "', '" + map_path + "' );";
+    string query = "INSERT INTO map_info VALUES ( '" + map_id + "', '" + map_name + "', '" + map_path + "', '" + map_scale + "' );";
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
@@ -570,9 +651,9 @@ int SQL_AddTag( Statement *&state, string tag_id, string tag_name, string pic_pa
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
-int SQL_AddEvent( Statement *&state, string tag_id, string status, string time )
+int SQL_AddEvent( Statement *&state, string tag_id, string alarm_type, string status, string time )
 {
-    string query = "INSERT INTO event VALUES ( '0','" + tag_id + "', '" + status + "', '" +  time + "' );";
+    string query = "INSERT INTO event VALUES ( '0','" + tag_id + "', '" + alarm_type + "', '" + status + "', '" +  time + "' );";
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
@@ -644,6 +725,7 @@ int SQL_AddStaff( Statement *&state, json func_arg )
 
     string grade        = func_arg["grade"].get<std::string>() ;
     string tech_grade   = func_arg["tech_grade"].get<std::string>() ;
+    string file_ext     = func_arg["file_ext"].get<std::string>() ;
 
     string str_b64      = func_arg["photo"].get<std::string>() ;
     string decoded      = base64_decode(str_b64);
@@ -671,7 +753,7 @@ int SQL_AddStaff( Statement *&state, json func_arg )
                    EnglishName + "','" + gender + "','" + card_id + "','" +  status + "','" + color_type + "','" + color + "','" + department_id + "','" +
                    jobTitle_id + "','" + type + "','" + birthday + "','" + dateEntry + "','" + dateLeave + "','" + school + "','" + education + "','" +
                    phoneJob + "','" + phoneSelf + "','" + mail + "','" + address + "','" + note + "','" + photo + "','" + exist + "','" + grade + "','" +
-                   tech_grade + "' );" ;
+                   tech_grade + "','" + file_ext + "' );" ;
 
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
@@ -997,12 +1079,14 @@ json json_SQL_GetMaps( Statement *&state, ResultSet *&result )
             string map_id   = result->getString("map_id");
             string map_name = result->getString("map_name");
             string map_path = result->getString("map_path");
+            string map_scale= result->getString("map_scale");
             //string time = result->getString("time");
 
             //temp["id"] = id;
             temp["map_id"]      = map_id;
             temp["map_name"]    = map_name;
             temp["map_path"]    = map_path;
+            temp["map_scale"]   = map_scale;
             //temp["time"] = time;
 
             foo["Values"].push_back(temp);
@@ -1020,18 +1104,18 @@ json json_SQL_GetMaps( Statement *&state, ResultSet *&result )
 }
 
 
-bool save_photo( string file_name, string encodedData )
+bool save_photo( string file_name, string encodedData, string file_ext )
 {
 
     string decodedData = base64_decode(encodedData);
+    string file_exten = file_ext ;
 
+    /*
     int file_exten_len = strlen(strstr( decodedData.c_str(), "\r\n"));
-
-    string file_exten = "" ;
     cout << "file_exten_len :" << file_exten_len << endl ;
-
     file_exten = decodedData.substr( 1, file_exten_len - 1 ) ;
     cout << "file_exten :" << file_exten << endl ;
+    //*/
 
 
     ofstream outPutFile;
@@ -1062,7 +1146,8 @@ json json_SQL_GetOneStaffPhoto( Statement *&state, ResultSet *&result, json func
 //            cout << photo << endl ;
 //            temp["photo"] = vec;
 
-            string photo  = result->getString("photo");
+            string photo    = result->getString("photo");
+            string file_ext = result->getString("file_ext");
 
             /*
             const std::string s = "ADP GmbH\nAnalyse Design & Programmierung\nGesellschaft mit beschränkter Haftung" ;
@@ -1087,8 +1172,9 @@ json json_SQL_GetOneStaffPhoto( Statement *&state, ResultSet *&result, json func
 //            encoded = base64_encode(reinterpret_cast<const unsigned char*>(photo.c_str()), photo.length());
             std::cout << "encoded: " << encoded << std::endl;
 
-            if ( encoded.length() > 0) {
-                save_photo( target, encoded ) ;
+            if ( encoded.length() > 0)
+            {
+                save_photo( target, encoded, file_ext ) ;
             }
 
             temp["photo"] = encoded;
@@ -1155,6 +1241,7 @@ json json_SQL_Get_One_Staff( Statement *&state, ResultSet *&result, json func_ar
             string exist        = result->getString("exist");
             string grade        = result->getString("grade");
             string tech_grade   = result->getString("tech_grade");
+            string file_ext     = result->getString("file_ext");
 
 
             string query1 = "", query2 = "", department = "", jobTitle = "" ;
@@ -1204,6 +1291,8 @@ json json_SQL_Get_One_Staff( Statement *&state, ResultSet *&result, json func_ar
             temp["exist"]       = exist;
             temp["grade"]       = grade;
             temp["tech_grade"]  = tech_grade;
+            temp["file_ext"]    = file_ext;
+
 
 
             foo["Values"].push_back(temp);
@@ -1231,10 +1320,10 @@ json json_SQL_GetStaffs( Statement *&state, ResultSet *&result )
 //    string query = "SELECT * FROM staff ORDER BY number;";
     string query = string("") + "select number," +  "tag_id, Name, lastName, firstName, EnglishName, gender, card_id, status, color_type, c.color, department_id," +
                    "jobTitle_id, type, birthday, dateEntry, dateLeave, school, education, phoneJob, phoneSelf, mail, address, note, photo, exist," +
-                   "grade, tech_grade, e.children as department, e.color  as department_color, jobTitle, jobTitle_color from (" +
+                   "grade, tech_grade, file_ext, e.children as department, e.color  as department_color, jobTitle, jobTitle_color from (" +
                    "SELECT number, tag_id, Name, lastName, firstName, EnglishName, gender, card_id, status, color_type, a.color," +
                    "department_id, jobTitle_id, type, birthday, dateEntry, dateLeave, school, education, phoneJob," +
-                   "phoneSelf, mail, address, note, photo, exist, grade, tech_grade, children as jobTitle, b.color as jobTitle_color FROM (" +
+                   "phoneSelf, mail, address, note, photo, exist, grade, tech_grade, file_ext , children as jobTitle, b.color as jobTitle_color FROM (" +
                    "SELECT * FROM staff )a left join jobTitle_relation b on b.c_id = a.jobTitle_id " +
                    ")c left join department_relation e on e.c_id = c.department_id ;" ;
     try
@@ -1274,6 +1363,7 @@ json json_SQL_GetStaffs( Statement *&state, ResultSet *&result )
 
             string grade        = result->getString("grade");
             string tech_grade   = result->getString("tech_grade");
+            string file_ext     = result->getString("file_ext");
 
             string department   = result->getString("department");
             string department_color = result->getString("department_color");
@@ -1327,6 +1417,7 @@ json json_SQL_GetStaffs( Statement *&state, ResultSet *&result )
 
             temp["grade"]       = grade;
             temp["tech_grade"]  = tech_grade;
+            temp["file_ext"]    = file_ext;
 
             temp["department"]  = department;
             temp["department_color"]    = department_color;
@@ -1877,13 +1968,14 @@ json Request_RemoveFromAlarmList( Statement *&state, json func_arg )
     foo["success"] = 0 ;
     json temp ;
 
-    string tmp_id       = func_arg["tag_id"].get<std::string>() ;
-    string tmp_status   = func_arg["tag_status"].get<std::string>() ;
-    string tmp_time     = func_arg["tag_time"].get<std::string>() ;
+    string tmp_id           = func_arg["tag_id"].get<std::string>() ;
+    string tmp_alarm_type   = func_arg["alarm_type"].get<std::string>() ;
+    string tmp_status       = func_arg["tag_status"].get<std::string>() ;
+    string tmp_time         = func_arg["tag_time"].get<std::string>() ;
 
     try
     {
-        string query = "INSERT INTO event VALUES ( '0', '" + tmp_id + "', '" + tmp_status + "', '" + tmp_time + "' );";
+        string query = "INSERT INTO event VALUES ( '0', '" + tmp_id + "', '" + tmp_alarm_type + "', '" + tmp_status + "', '" + tmp_time + "' );";
         SQL_ExecuteUpdate_single( state, query ) ;
 
     }
@@ -3166,3 +3258,150 @@ void SQL_Update_locus_index_hour_min( string datetime )
 }
 
 
+
+int SQL_EventType( Statement *&state, json func_arg )
+{
+
+    string type     = func_arg["type"].get<std::string>() ;
+    string color    = func_arg["color"].get<std::string>() ;
+
+//    string query0 = "SET @last_id_in_table = (SELECT AUTO_INCREMENT  FROM information_schema.tables WHERE table_name = 'user_type' AND table_schema = DATABASE() );" ;
+//    SQL_ExecuteUpdate_single( state, query0 ) ;
+    string query = string("") + "INSERT INTO user_type VALUES ( '" + type + "','" + color  + "' );" ;
+
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+
+
+json Alarm::visible_list ; // last next tag_list
+json Alarm::invisible_list ;
+json Alarm::alarm_status_list ; // allow delete from web UI
+json Alarm::alarm_top50_list ;  // keep latest 50 alarm tag_id
+
+int Alarm::bar;
+
+bool Alarm::remove_from_invisible_list( string target_tag )
+{
+    for ( int i = 0 ; i < invisible_list.size() ; i++ )
+    {
+        if ( invisible_list[i]["tag_id"] == target_tag )
+        {
+            invisible_list[i].erase("tag_id");
+            invisible_list[i].erase("time");
+            //input[i].erase("tag_id");
+            return true ;
+        }
+    }
+    return false ;
+}
+
+bool Alarm::remove_from_status_list( string target_tag )
+{
+    for ( int i = 0 ; i < alarm_status_list.size() ; i++ )
+    {
+        if ( alarm_status_list[i]["tag_id"] == target_tag )
+        {
+            alarm_status_list[i].erase("tag_id");
+            alarm_status_list[i].erase("time");
+            //input[i].erase("tag_id");
+            return true ;
+        }
+    }
+    return false ;
+}
+
+bool Alarm::search_visible_list( string target_tag )
+{
+    for ( int i = 0 ; i < visible_list.size() ; i++ )
+    {
+        if ( visible_list[i]["tag_id"] == target_tag )
+        {
+            return true ;
+        }
+    }
+    return false ;
+}
+
+
+json Alarm::add_to_alarm_top50_list( json j_list, json input )
+{
+    if ( j_list.size() == 50 )
+    {
+        j_list[0].erase("tag_id") ;
+        j_list[0].erase("time") ;
+    } // if
+
+    j_list.push_back(input) ;
+    return j_list ;
+}
+
+json Alarm::combine_staff_info_to_alarm_list( json staff, json alarm ) {
+    json rtn ;
+    json temp ;
+    for ( int i = 0 ; i < alarm.size() ; i++ ) {
+        for ( int j = 0 ; j < staff.size() ; j++ ) {
+            if ( alarm[i]["tag_id"] == staff[j]["tag_id"] ) {
+
+                temp["tag_id"]  = alarm[i]["tag_id"] ;
+                temp["time"]    = alarm[i]["time"] ;
+
+                temp["Name"]    = staff[j]["tag_id"] ;
+                temp["number"]    = staff[j]["number"] ;
+                rtn.push_back(temp) ;
+
+            }
+        }
+    }
+    return rtn ;
+}
+
+json Alarm::Call_Alarm_func( string func_name, json func_arg )
+{
+
+    json ret ;
+    int success = 0 ;
+
+    Connection *con = nullptr;//= connpool.GetConnection();;
+    Statement *state = nullptr;
+    ResultSet *result = nullptr;
+
+    try
+    {
+        SQL_Open_single( con, state, result ) ;
+
+
+        if ( func_name == "EditInvisibleList" )
+        {
+            SQL_AddEvent( state,  func_arg["tag_id"].get<std::string>(), "alarm_type", "status", "2019-04-09 11:53:00" );
+            remove_from_invisible_list( func_arg["tag_id"].get<std::string>() ) ;
+            ret = invisible_list ;
+        }
+
+
+        if ( func_name == "GetAlarmStatusList" )
+        {
+            ret = alarm_status_list ;
+        }
+        else if ( func_name == "GetAlarmTop50List" )
+        {
+            ret = alarm_top50_list ;
+        }
+
+
+
+
+
+        SQL_Close_single( con, state, result );
+        return ret ;
+
+    }
+    catch ( exception &e )
+    {
+        cout << "json parse error from Call_Alarm_func" << endl;
+        cout << e.what() << endl ;
+        //SQL_Close();
+        SQL_Close_single( con, state, result );
+    }
+
+}

@@ -7,6 +7,7 @@
 #include <bitset>
 #include "base64.h"
 #include "DBPool.h"
+//#include "Alarm.h"
 #include <stdio.h>
 #include <locale.h>
 #include <wchar.h>
@@ -54,15 +55,16 @@ json Call_SQL_func( string func_name, json func_arg );
 
 int SQL_AddAnchor( Statement *&state, string id, string x, string y, string type ) ;
 int SQL_AddGroup( Statement *&state, string group_id, string main_anchor_id, string mode, string mode_value, string fence ) ;
-int SQL_AddMap( Statement *&state, string map_id, string map_name, string map_path ) ;
+int SQL_AddMap( Statement *&state, string map_id, string map_name, string map_path, string map_scale ) ;
 
 int SQL_AddGroup_Anchor( Statement *&state, string group_id, string main_anchor_id ) ;
 int SQL_AddMap_Group( Statement *&state, string map_id, string group_id ) ;
 
 int SQL_AddLocus( Statement *&state, string tag_id, string x, string y, string group_id, string date, string time ) ;
 int SQL_AddLocus_combine( Statement *&state, string tag_id, string x, string y, string group_id,  string time ) ;
-int SQL_AddEvent( Statement *&state, string tag_id, string status, string time ) ;
+int SQL_AddEvent( Statement *&state, string tag_id, string alarm_type, string status, string time ) ;
 
+json update_staff_list( json from_sql_latest_list ) ;
 int SQL_AddStaff( Statement *&state, json func_arg ) ;
 int SQL_DeleteStaff( Statement *&state, string number ) ;
 
@@ -158,3 +160,30 @@ string SQL_Get_indexOf_locus_index_by_next_min( string rownum );
 
 bool Time_In_Interval( string input, string starting, string ending) ;
 json package2json( string coordinate_x, string coordinate_y, string map_id, string time ) ;
+
+
+
+class Alarm
+{
+private:
+
+
+public :
+    static json visible_list ; // last next tag_list
+    static json invisible_list ;
+    static json alarm_status_list ;
+    static json alarm_top50_list ;
+
+
+    bool remove_from_invisible_list( string target_tag ) ;
+    bool search_visible_list( string target_tag ) ;
+    bool remove_from_status_list( string target_tag ) ;
+    json add_to_alarm_top50_list( json j_list, json input ) ;
+    json combine_staff_info_to_alarm_list( json staff, json alarm ) ;
+
+
+    json Call_Alarm_func( string func_name, json func_arg ) ;
+
+    static int bar;
+
+};

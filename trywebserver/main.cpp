@@ -13,6 +13,7 @@
 #include "json.hpp"
 #include "Cmd.h"
 #include "SQL_Cmd.h"
+//#include "Alarm.h"
 //*****************/
 
 #include <stdio.h>
@@ -2469,7 +2470,37 @@ void check_locus_index_hour_min()
     //usleep(0);
 }
 
+bool is_time_late_now( string in )
+{
+    return true ;
+}
+
 volatile bool Record2SQL = true ;
+//json visible_list ; // last next tag_list
+//json invisible_list ;
+//
+//bool search_invisible_list( json input, string target_tag ) {
+//    for ( int i = 0 ; i < input.size() ; i++ ) {
+//        if ( input[i]["tag_id"] == target_tag ) {
+//            input[i].erase("tag_id");
+//            input[i].erase("time");
+//            //input[i].erase("tag_id");
+//            return true ;
+//        }
+//    }
+//    return false ;
+//}
+//
+//bool search_visible_list( json input, string target_tag ) {
+//    for ( int i = 0 ; i < input.size() ; i++ ) {
+//        if ( input[i]["tag_id"] == target_tag ) {
+//            return true ;
+//        }
+//    }
+//    return false ;
+//}
+
+Alarm func_alarm ;
 void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_record_count, Status_record* Tag_Status_record_info, unsigned int status_record_count)
 {
     //cout << "point display" << endl;
@@ -2490,8 +2521,53 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
         double temp_scale = (1 / image_scale);
 
 
+
+        // update invisible & visible List ***********
+        for ( int j = 0 ; j < func_alarm.visible_list.size() ; j++ )
+        {
+            json walk = func_alarm.visible_list[j] ;
+
+            bool in_realtime_list = false ;
+
+            for ( int k = 0 ; k < (unsigned)point_count; k++ )
+            {
+                long temp_x = (long)(Tag_Map_point[k].point.x / temp_scale);
+                long temp_y = (long)(Tag_Map_point[k].point.y / temp_scale);
+                string temp_id = Tag_Map_point[k].Tag_Map_string ;
+                string time = Tag_record_info[k].Tag_info_record[Tag_record_info[k].Info_count - 1].System_Time ;
+                string temp_date_time = Trans2Standard(time); // Transfer time to standard format.
+
+                if ( walk["tag_id"] == temp_id )   // refresh visible_list's time
+                {
+                    walk["tag_time"] = temp_date_time ;
+                    in_realtime_list = true ;
+                }
+
+                func_alarm.remove_from_invisible_list( temp_id ) ; // if found the realtime_tag in invisible_list , delete that record.
+            } // for
+
+
+            if ( !in_realtime_list )   // doesn't in the realtime_tag list
+            {
+                if ( is_time_late_now( walk["tag_time"] ) ) // if visible + offset_time < now , add to invisible
+                {
+                    func_alarm.invisible_list.push_back( walk ) ;
+
+                }
+
+                else // if visible + offset_time > now ,nothing to do.
+                {
+                }
+
+            } // if
+        } // for int j = 0 ;
+        // update invisible & visible List END *****************************************
+
+
+
+
         // Init DB connect START*******
-        Connection *con = nullptr;//= connpool.GetConnection();;
+        Connection *con = nullptr;//= connpool.GetConnection();
         Statement *state = nullptr;
         ResultSet *result = nullptr;
         if ( _SQL_flag )
@@ -2514,13 +2590,24 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
                 SQL_AddLocus_combine( state, temp_id, to_string(temp_x), to_string(temp_y), "1",  temp_date_time ) ;
             // write the Locus into DB END*******
 
+
+            // Check this tag_id in the visible_list or not.
+            if ( !func_alarm.search_visible_list( temp_id ) ) { // not in the visible list
+                json j_vis ;
+                j_vis["tag_id"] = temp_id ;
+                j_vis["time"]   = temp_date_time ;
+                func_alarm.visible_list.push_back( j_vis ) ;
+                j_vis.clear() ;
+            }
+
 //            string temp_date = TransDate(time);
 //            string temp_time = TransTime(time);
 //            if ( Record2SQL && _SQL_flag )
 //                SQL_AddLocus( state, temp_id, to_string(temp_x), to_string(temp_y), "1", temp_date, temp_time ) ;
 
+        } // for
 
-        }
+
 
         // Close connect*******
         if ( _SQL_flag )
@@ -2564,13 +2651,25 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
                             string temp_status = to_string(Tag_Map_Status_temp->Status) ;
                             string temp_date_time = Trans2Standard(temp_time);
                             if ( Record2SQL && _SQL_flag )
-                                SQL_AddEvent( state, temp_id, temp_status, temp_date_time ) ;
+                                SQL_AddEvent( state, temp_id, temp_status, "",temp_date_time ) ;
                             // Write EVENT into Database END*******
 
                             //display_status();
                             Request_Alarm_Status_temp[request_alarm_count].Status = Tag_Map_Status_temp->Status;
                             Request_Alarm_Status_temp[request_alarm_count].System_Time = Tag_Map_Status_temp->System_Time;
                             Request_Alarm_Status_temp[request_alarm_count].Tag_ID = Tag_Map_Status_temp->Tag_ID;
+
+                            json one_tag ;
+                            //one_tag["status"] = Tag_Map_Status_temp->Status;
+                            one_tag["time"] = Tag_Map_Status_temp->System_Time;
+                            one_tag["tag_id"] = Tag_Map_Status_temp->Tag_ID;
+
+                            // The list that could be erase.
+                            func_alarm.alarm_status_list.push_back(one_tag) ;
+                            // The list keep latest 50 records.
+                            func_alarm.add_to_alarm_top50_list( func_alarm.alarm_top50_list, one_tag ) ;
+
+
                             request_alarm_count++;
                         }
 
@@ -2591,7 +2690,7 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
                 string temp_status = to_string(Tag_Map_Status_temp->Status) ;
                 string temp_date_time = Trans2Standard(temp_time);
                 if ( Record2SQL && _SQL_flag )
-                    SQL_AddEvent( state, temp_id, temp_status, temp_date_time ) ;
+                    SQL_AddEvent( state, temp_id, temp_status, "",temp_date_time ) ;
                 // Write EVENT into Database END*******
 
 
@@ -2762,12 +2861,14 @@ void TCP_thread_Safe( SOCKET m_socket )
                 strcpy( (char*)tmp_buf, str.c_str() );
 
                 for ( int i = 0 ; i < sizeof(tmp_buf) ; i++ )
-                    if ( tmp_buf[i] == 13 && tmp_buf[i+1] == 10 ) {
+                    if ( tmp_buf[i] == 13 && tmp_buf[i+1] == 10 )
+                    {
                         w_index = i ;
                         tmp_ret[i] = '\0' ;
                         break;
                     }
-                    else {
+                    else
+                    {
                         // cout << "???>>>" << i << endl ;
                         tmp_ret[i] = tmp_buf[i] ;
                     }
@@ -3720,6 +3821,78 @@ return_ok:
             }
 
 
+            else if (strstr((char*)testbuff, "POST /alarm HTTP/1.1") != 0 )
+            {
+
+                string target = "" ;
+                string action = "" ;
+                string command_name = "" ;
+                int dev_amount = 0, function_amount = 0, rw_flag = 0 ;
+                json j_response;
+                try
+                {
+                    stringstream json_part ;
+                    json_part << deli_arg ; // char* to stringstream
+//                    cout << testbuff << endl ;
+//                    cout << "stream:"<< json_part.str() << endl ; // stringstream to string
+//                    cout << ":::::" <<endl ;
+                    auto arg_from_web = json::parse(json_part.str()); // string to json parser
+//                    cout << "????" << endl ;
+//                    cout << "get_arg from web :" << arg_from_web << endl ;
+
+                    //action = arg_from_web["Command_Type"][0].get<std::string>() ;
+                    //command_name = arg_from_web["Command_Name"][0].get<std::string>() ;
+                    //function_amount = arg_from_web["Value"]["function"].size() ;
+                    //dev_amount = arg_from_web["Value"]["IP_address"].size() ;
+                    function_amount = arg_from_web["Command_Name"].size() ; // get the amount of action.
+
+                    if ( action == "Write" )
+                        rw_flag = 2;
+                    else
+                        rw_flag = 1 ;
+
+
+                    json j_arg = arg_from_web["Value"] ; // get the parameters for database.
+
+
+                    for ( int i = 0 ; i < function_amount ; i++ )
+                    {
+                        command_name = arg_from_web["Command_Name"][i].get<std::string>() ;
+                        if ( _SQL_flag )
+                        {
+                            j_response = func_alarm.Call_Alarm_func( command_name, j_arg );
+                        }
+//                    SQL_Close();
+                    }
+
+
+
+                }
+                catch(json::parse_error)
+                {
+                    cout << "parse_error_sql" << endl ;
+
+                }
+                catch(json::type_error)
+                {
+                    cout << "type_error" << endl ;
+
+                }
+                catch( exception &e )
+                {
+                    cout << "other error" << endl ;
+                    std::cout << e.what() << std::endl;
+                }
+
+                std::string response_text = j_response.dump();
+                j_response.clear();
+                binch2 = response_text.c_str();
+                bytesSent = send(SOCKET_temp, (const char*)binch2, strlen(binch2), 0);
+
+
+            }
+
+
 
 
             /***********
@@ -4187,7 +4360,8 @@ string testStr2Time_Hour( string date, string time )
 
 int main()
 {
-
+//    Alarm::bar = 1 ;
+//    cout << Alarm::bar << endl ;
 
 //    Get_LastDay_date() ;
 //    Get_Today_date_hour();
