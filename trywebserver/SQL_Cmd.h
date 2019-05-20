@@ -55,7 +55,10 @@ json Call_SQL_func( string func_name, json func_arg );
 
 int SQL_AddAnchor( Statement *&state, string id, string x, string y, string type ) ;
 int SQL_AddGroup( Statement *&state, string group_id, string main_anchor_id, string mode, string mode_value, string fence ) ;
-int SQL_AddMap( Statement *&state, string map_id, string map_name, string map_path, string map_scale ) ;
+
+int SQL_AddMap( Statement *&state, string map_name, string map_file, string map_scale, string map_file_ext ) ;
+int SQL_EditMap( Statement *&state, json func_arg ) ;
+int SQL_DeleteMap( Statement *&state, string id );
 
 int SQL_AddGroup_Anchor( Statement *&state, string group_id, string main_anchor_id ) ;
 int SQL_AddMap_Group( Statement *&state, string map_id, string group_id ) ;
@@ -64,9 +67,12 @@ int SQL_AddLocus( Statement *&state, string tag_id, string x, string y, string g
 int SQL_AddLocus_combine( Statement *&state, string tag_id, string x, string y, string group_id,  string time ) ;
 int SQL_AddEvent( Statement *&state, string tag_id, string alarm_type, string status, string time ) ;
 
-json update_staff_list( json from_sql_latest_list ) ;
+json update_staff_list( json from_sql_latest_list ) ; // only for server cache ( for match alarm list ), not web request.
+
 int SQL_AddStaff( Statement *&state, json func_arg ) ;
+int SQL_EditStaff( Statement *&state, json func_arg ) ;
 int SQL_DeleteStaff( Statement *&state, string number ) ;
+
 
 int SQL_AddDepartment( Statement *&state, json func_arg ) ;
 int SQL_EditDepartment( Statement *&state, json func_arg ) ;
@@ -82,6 +88,23 @@ int SQL_EditUserType( Statement *&state, json func_arg ) ;
 int SQL_DeleteUserType( Statement *&state, string type ) ;
 
 
+int SQL_AddTime_Slot( Statement *&state, string time_slot_name, string Mon_start, string Mon_end, string Tue_start, string Tue_end,
+                string Wed_start, string Wed_end, string Thu_start, string Thu_end, string Fir_start, string Fir_end,
+                string Sat_start, string Sat_end, string Sun_start, string Sun_end );
+int SQL_EditTime_Slot( Statement *&state, json func_arg );
+int SQL_DeleteTime_Slot( Statement *&state, string id );
+
+
+int SQL_AddAlarm_Info( Statement *&state, string alarm_name, string alarm_switch, string alarm_value, string alarm_group_info_id );
+int SQL_EditAlarmInfo( Statement *&state, json func_arg );
+int SQL_DeleteAlarm_Info( Statement *&state, string id );
+
+
+int SQL_AddAlarm_Group_Info( Statement *&state, string alarm_group_name, string time_slot_id );
+int SQL_EditAlarmGroupInfo( Statement *&state, json func_arg );
+int SQL_DeleteAlarm_Group_Info( Statement *&state, string id );
+
+
 int SQL_multiEdit_StaffDepartment( Statement *&state, string number, string department_id ) ;
 int SQL_multiEdit_StaffType( Statement *&state, string number, string type ) ;
 int SQL_multiEdit_StaffJobTitle( Statement *&state, string number, string jobTitle_id ) ;
@@ -92,7 +115,7 @@ int SQL_multiEdit_StaffSetColor( Statement *&state, string number, string color_
 
 int SQL_OFF_SafeUpdate( Statement *&state );
 int SQL_DeleteAnchor( Statement *&state, string id );
-int SQL_DeleteMap( Statement *&state, string id );
+
 int SQL_DeleteGroup( Statement *&state, string id );
 int SQL_DeleteGroup_Anchor( Statement *&state, string gid, string anid );
 int SQL_DeleteTag( Statement *&state, string id );
@@ -114,9 +137,16 @@ json json_SQL_GetDepartment_relation_list( Statement *&state, ResultSet *&result
 json json_SQL_GetJobTitle_relation_list( Statement *&state, ResultSet *&result );
 json json_SQL_GetUserTypes( Statement *&state, ResultSet *&result );
 
+// Alarm START
+json json_alarm_GroupBy_id( json group, json single ) ;
+////json json_SQL_GetAlarmTypes( Statement *&state, ResultSet *&result );
+json json_SQL_GetAlarmInfo_list( Statement *&state, ResultSet *&result );
+json json_SQL_GetAlarmGroup_list( Statement *&state, ResultSet *&result );
+// Alarm END
+
 json json_SQL_Return_inserted_dept_id( Statement *&state, ResultSet *&result );
 json json_SQL_Return_inserted_job_id( Statement *&state, ResultSet *&result );
-
+json json_SQL_Return_alarm_gid( Statement *&state, ResultSet *&result );
 
 json json_SQL_GetGroup_Anchors( Statement *&state, ResultSet *&result );
 json json_SQL_GetMap_Groups( Statement *&state, ResultSet *&result );
@@ -174,6 +204,8 @@ public :
     static json alarm_status_list ;
     static json alarm_top50_list ;
 
+    json Call_Alarm_func( string func_name, json func_arg ) ;
+
 
     bool remove_from_invisible_list( string target_tag ) ;
     bool search_visible_list( string target_tag ) ;
@@ -182,7 +214,6 @@ public :
     json combine_staff_info_to_alarm_list( json staff, json alarm ) ;
 
 
-    json Call_Alarm_func( string func_name, json func_arg ) ;
 
     static int bar;
 

@@ -25,7 +25,7 @@ string sql_create_locus     = sql_create_table + sql_create_locus1 + sql_create_
 
 
 string sql_create_map1      = "map_info ( map_id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (map_id), map_name VARCHAR(16), " ;
-string sql_create_map2      = "map_path VARCHAR(64), map_scale VARCHAR(10) )";
+string sql_create_map2      = "map_file MEDIUMBLOB, map_scale VARCHAR(10), map_file_ext VARCHAR(5) )";
 string sql_create_map_info  = sql_create_table + sql_create_map1 + sql_create_map2 ;
 
 
@@ -89,7 +89,7 @@ string sql_create_staff1    = "staff ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, 
 string sql_create_staff2    = string("") + "tag_id VARCHAR(16), INDEX index_tag_id( tag_id ), Name VARCHAR(40)" + ",lastName VARCHAR(40)" + ", firstName VARCHAR(40)" + ",EnglishName VARCHAR(40) ," ;
 string sql_create_staff3    = string("") + "gender VARCHAR(10)," + "card_id VARCHAR(40)," + "status VARCHAR(40)," + "color_type VARCHAR(10)," + "color VARCHAR(10)," + "department_id INT UNSIGNED," + "jobTitle_id INT UNSIGNED," +  "type VARCHAR(40),";
 string sql_create_staff4    = string("") + "birthday VARCHAR(10)," + "dateEntry VARCHAR(10)" + ", dateLeave VARCHAR(10)" + ", school VARCHAR(40)" + ", education VARCHAR(10)"
-                              + ", phoneJob VARCHAR(20)" + ", phoneSelf VARCHAR(20)" + ", mail VARCHAR(60)" + ", address TEXT" + ", note TEXT" + ", photo BLOB" + ", exist INT"
+                              + ", phoneJob VARCHAR(20)" + ", phoneSelf VARCHAR(20)" + ", mail VARCHAR(60)" + ", address TEXT" + ", note TEXT" + ", photo MEDIUMBLOB" + ", exist INT"
                               + ", grade VARCHAR(20)"  +  ", tech_grade VARCHAR(20)" +  ", file_ext VARCHAR(5)" +")";
 string sql_create_staff     = sql_create_table + sql_create_staff1 + sql_create_staff2 + sql_create_staff3 + sql_create_staff4 ;
 
@@ -139,18 +139,18 @@ string sql_create_time_slot_group   = sql_create_table + sql_create_time_slot_gr
 //****************************/
 
 
-string sql_create_alarm_group_info1  = "alarm_group_info ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
-string sql_create_alarm_group_info2  = " alarm_group_name VARCHAR(10), time_slot_id INT UNSIGNED  )";
-string sql_create_alarm_group_info   = sql_create_table + sql_create_alarm_group_info1 + sql_create_alarm_group_info2 ;
-
 string sql_create_alarm_info1  = "alarm_info (  id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
-string sql_create_alarm_info2  = " alarm_name VARCHAR(10), alarm_value TINYINT )";
+string sql_create_alarm_info2  = " alarm_name VARCHAR(10), alarm_switch VARCHAR(5), alarm_value INT, alarm_group_info_id INT UNSIGNED )";
 string sql_create_alarm_info   = sql_create_table + sql_create_alarm_info1 + sql_create_alarm_info2 ;
 
-string sql_create_alarm_group1  = "alarm_group (  id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
-string sql_create_alarm_group2  = " alarm_group_info_id INT UNSIGNED , alarm_info_id INT UNSIGNED )";
-string sql_create_alarm_group   = sql_create_table + sql_create_alarm_group1 + sql_create_alarm_group2 ;
+//string sql_create_alarm_group1  = "alarm_group (  id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
+//string sql_create_alarm_group2  = " alarm_group_info_id INT UNSIGNED , alarm_info_id INT UNSIGNED )";
+//string sql_create_alarm_group   = sql_create_table + sql_create_alarm_group1 + sql_create_alarm_group2 ;
 
+
+string sql_create_alarm_group_info1  = "alarm_group_info ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
+string sql_create_alarm_group_info2  = " alarm_group_name VARCHAR(20), time_slot_id INT UNSIGNED  )";
+string sql_create_alarm_group_info   = sql_create_table + sql_create_alarm_group_info1 + sql_create_alarm_group_info2 ;
 
 
 // ******************** fence *****************
@@ -204,7 +204,7 @@ bool Construct_sql_cmd()
 
         SQL_ExecuteUpdate( sql_create_alarm_group_info ) ;
         SQL_ExecuteUpdate( sql_create_alarm_info ) ;
-        SQL_ExecuteUpdate( sql_create_alarm_group ) ;
+//        SQL_ExecuteUpdate( sql_create_alarm_group ) ;
 
 
         SQL_Close();
@@ -382,7 +382,7 @@ json Call_SQL_func( string func_name, json func_arg )
                                          func_arg[i]["mode"].get<std::string>(), func_arg[i]["mode_value"].get<std::string>(), func_arg[i]["fence"].get<std::string>() ) ;
 
             else if ( func_name == "AddListMap" )
-                success += SQL_AddMap( state, func_arg[i]["map_id"].get<std::string>(), func_arg[i]["map_name"].get<std::string>(), func_arg[i]["map_path"].get<std::string>(), func_arg[i]["map_scale"].get<std::string>() ) ;
+                success += SQL_AddMap( state, func_arg[i]["map_name"].get<std::string>(), func_arg[i]["map_file"].get<std::string>(), func_arg[i]["map_scale"].get<std::string>(), func_arg[i]["map_file_ext"].get<std::string>() ) ;
 
 
             else if ( func_name == "AddListGroup_Anchor" )
@@ -390,6 +390,30 @@ json Call_SQL_func( string func_name, json func_arg )
 
             else if ( func_name == "AddListMap_Group" )
                 success += SQL_AddMap_Group( state, func_arg[i]["map_id"].get<std::string>(), func_arg[i]["group_id"].get<std::string>() );
+
+            else if ( func_name == "AddAlarmInfo" )
+            {
+                success += SQL_AddAlarm_Info( state, func_arg[i]["alarm_name"].get<std::string>(), func_arg[i]["alarm_switch"].get<std::string>(), func_arg[i]["alarm_value"].get<std::string>(), func_arg[i]["alarm_group_info_id"].get<std::string>() );
+            }
+
+            else if ( func_name == "AddAlarmGroup")
+            {
+                success += SQL_AddAlarm_Group_Info( state, func_arg[i]["alarm_group_name"].get<std::string>(), func_arg[i]["time_slot_id"].get<std::string>() );
+                ret = json_SQL_Return_alarm_gid( state, result );
+            }
+
+            else if ( func_name == "AddTimeSlot")
+            {
+                // id, time_slot_name, Mon_start, Mon_end, Tue_start, Tue_end, Wed_start, Wed_end, Thu_start, Thu_end, Fir_start, Fir_end, Sat_start, Sat_end, Sun_start, Sun_end
+                success += SQL_AddTime_Slot( state, func_arg[i]["time_slot_name"].get<std::string>(),
+                                            func_arg[i]["Mon_start"].get<std::string>(), func_arg[i]["Mon_end"].get<std::string>(),
+                                            func_arg[i]["Tue_start"].get<std::string>(), func_arg[i]["Tue_end"].get<std::string>(),
+                                            func_arg[i]["Wed_start"].get<std::string>(), func_arg[i]["Wed_end"].get<std::string>(),
+                                            func_arg[i]["Thu_start"].get<std::string>(), func_arg[i]["Thu_end"].get<std::string>(),
+                                            func_arg[i]["Fir_start"].get<std::string>(), func_arg[i]["Fir_end"].get<std::string>(),
+                                            func_arg[i]["Sat_start"].get<std::string>(), func_arg[i]["Sat_end"].get<std::string>(),
+                                            func_arg[i]["Sun_start"].get<std::string>(), func_arg[i]["Sun_end"].get<std::string>() );
+            }
 
 //            else if ( func_name == "DeleteAnchor" )
 //                success = SQL_DeleteAnchor( state, func_arg["anchor_id"] );
@@ -413,6 +437,20 @@ json Call_SQL_func( string func_name, json func_arg )
                 j_staff_list.clear() ;
                 j_staff_list = update_staff_list( tmp_list ) ;
             }
+
+            else if ( func_name == "EditStaff" )
+            {
+                success = SQL_EditStaff( state, func_arg[i] ) ;
+
+                // When update a staff_info, updating the staff_list which in the ram .
+                json tmp_list = json_SQL_GetStaffs( state, result );
+                cout << tmp_list.dump(2) << endl ;
+                j_staff_list.clear() ;
+                j_staff_list = update_staff_list( tmp_list ) ;
+            }
+
+
+
             else if ( func_name == "AddDepartment" )
             {
                 success = SQL_AddDepartment( state, func_arg[i] ) ;
@@ -439,6 +477,13 @@ json Call_SQL_func( string func_name, json func_arg )
 
             else if ( func_name == "DeleteStaff" )
                 success = SQL_DeleteStaff( state, func_arg[i]["number"].get<std::string>() ) ;
+
+            else if ( func_name == "DeleteAlarmInfo" )
+                success = SQL_DeleteAlarm_Info( state, func_arg[i]["alarm_iid"].get<std::string>() ) ;
+            else if ( func_name == "DeleteAlarmGroupInfo" )
+                success = SQL_DeleteAlarm_Group_Info( state, func_arg[i]["alarm_gid"].get<std::string>() ) ;
+            else if ( func_name == "DeleteTimeSlot" )
+                success = SQL_DeleteTime_Slot( state, func_arg[i]["time_id"].get<std::string>() ) ;
 
 
             else if ( func_name == "multiEdit_StaffDepartment")
@@ -489,6 +534,28 @@ json Call_SQL_func( string func_name, json func_arg )
             success = SQL_EditUserType( state, func_arg ) ;
         }
 
+        else if ( func_name == "EditAlarmInfo" )
+        {
+            success = SQL_EditAlarmInfo( state, func_arg ) ;
+        }
+
+        else if ( func_name == "EditAlarmGroupInfo" )
+        {
+            success = SQL_EditAlarmGroupInfo( state, func_arg ) ;
+        }
+
+        else if ( func_name == "EditMap" )
+        {
+            success = SQL_EditMap( state, func_arg ) ;
+        }
+
+        else if ( func_name == "EditTimeSlot" )
+        {
+            success = SQL_EditTime_Slot( state, func_arg ) ;
+        }
+
+
+
 
 
         cout << func_name << endl ;
@@ -518,6 +585,19 @@ json Call_SQL_func( string func_name, json func_arg )
             ret = json_SQL_GetJobTitle_relation_list( state, result );
         else if ( func_name == "GetUserTypes" )
             ret = json_SQL_GetUserTypes( state, result );
+        else if ( func_name == "GetAlarmInfo" )
+            ret = json_SQL_GetAlarmInfo_list( state, result );
+        else if ( func_name == "GetAlarmGroup_list")
+        {
+            // alarm_group
+            json alarm_g = json_SQL_GetAlarmGroup_list( state, result );
+            cout << alarm_g.dump(2) << endl ;
+
+            // alarm_info
+            json alarm_i = json_SQL_GetAlarmInfo_list( state, result );
+            cout << alarm_i.dump(2) << endl ;
+            ret = json_alarm_GroupBy_id( alarm_g, alarm_i );
+        }
 
 
         else if ( func_name == "GetGroup_Anchors" || func_name == "AddListGroup_Anchor" )
@@ -580,7 +660,7 @@ json Call_SQL_func( string func_name, json func_arg )
 
 }
 
-json update_staff_list( json from_sql_latest_list )
+json update_staff_list( json from_sql_latest_list ) // only for server cache ( for match alarm list ), not web request.
 {
     json person ;
     json people ;
@@ -611,9 +691,9 @@ int SQL_AddGroup( Statement *&state, string group_id, string main_anchor_id, str
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
-int SQL_AddMap( Statement *&state, string map_id, string map_name, string map_path, string map_scale )
+int SQL_AddMap( Statement *&state, string map_name, string map_file, string map_scale, string map_file_ext )
 {
-    string query = "INSERT INTO map_info VALUES ( '" + map_id + "', '" + map_name + "', '" + map_path + "', '" + map_scale + "' );";
+    string query = "INSERT INTO map_info VALUES ( '0', '" + map_name + "', '" + map_file + "', '" + map_scale + "', '" + map_file_ext + "' );";
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
@@ -624,12 +704,40 @@ int SQL_AddGroup_Anchor( Statement *&state, string group_id, string main_anchor_
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
+int SQL_AddAlarm_Group( Statement *&state, string alarm_group_info_id, string alarm_info_id )
+{
+    string query = "INSERT INTO alarm_group VALUES ( '0','" + alarm_group_info_id + "', '" + alarm_info_id + "' );";
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
 int SQL_AddMap_Group( Statement *&state, string map_id, string group_id )
 {
     string query = "INSERT INTO map_groups VALUES ( '0','" + map_id + "', '" + group_id + "' );";
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
+int SQL_AddAlarm_Info( Statement *&state, string alarm_name, string alarm_switch, string alarm_value, string alarm_group_info_id )
+{
+    string query = "INSERT INTO alarm_info VALUES ( '0','" + alarm_name + "', '" + alarm_switch + "', '" + alarm_value + "', '" + alarm_group_info_id +  "' );";
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+int SQL_AddAlarm_Group_Info( Statement *&state, string alarm_group_name, string time_slot_id )
+{
+    string query = "INSERT INTO alarm_group_info VALUES ( '0','" + alarm_group_name + "', '" + time_slot_id +  "' );";
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+int SQL_AddTime_Slot( Statement *&state, string time_slot_name, string Mon_start, string Mon_end, string Tue_start, string Tue_end,
+                      string Wed_start, string Wed_end, string Thu_start, string Thu_end, string Fir_start, string Fir_end,
+                      string Sat_start, string Sat_end, string Sun_start, string Sun_end )
+{
+    //time_slot_name, Mon_start, Mon_end, Tue_start, Tue_end, Wed_start, Wed_end, Thu_start, Thu_end, Fir_start, Fir_end, Sat_start, Sat_end, Sun_start, Sun_end
+    string query = string("") + "INSERT INTO time_slot_info VALUES ( '0','" + time_slot_name + "', '" +
+                   Mon_start + "', '" + Mon_end + "', '" + Tue_start + "', '" + Tue_end + "', '" + Wed_start + "', '" + Wed_end + "', '" +
+                   Thu_start + "', '" + Thu_end + "', '" + Fir_start + "', '" + Fir_end + "', '" + Sat_start + "', '" + Sat_end + "', '" + Sun_start + "', '" + Sun_end  + "' );";
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
 
 
 int SQL_AddLocus( Statement *&state, string tag_id, string x, string y, string group_id, string date,string time )
@@ -737,7 +845,7 @@ int SQL_AddStaff( Statement *&state, json func_arg )
 //        str_bin += b.to_string();
 //    }
     string photo        = str_b64;
-    cout << "?????" << endl ;
+//    cout << "?????" << endl ;
 
     /*
     "staff ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), number VARCHAR(40) NOT NULL, UNIQUE (number), INDEX index_staff(number), " ;
@@ -810,6 +918,81 @@ int SQL_AddUserType( Statement *&state, json func_arg )
 }
 
 
+int SQL_EditStaff( Statement *&state, json func_arg )
+{
+
+    string number       = func_arg["number"].get<std::string>() ;
+    string tag_id       = func_arg["tag_id"].get<std::string>() ;
+    string Name         = func_arg["Name"].get<std::string>() ;
+    string lastName     = func_arg["lastName"].get<std::string>() ;
+    string firstName    = func_arg["firstName"].get<std::string>() ;
+
+    string EnglishName  = func_arg["EnglishName"].get<std::string>() ;
+    string gender       = func_arg["gender"].get<std::string>() ;
+    string card_id      = func_arg["card_id"].get<std::string>() ;
+    string status       = func_arg["status"].get<std::string>() ;
+    string color_type   = func_arg["color_type"].get<std::string>() ;
+    string color        = func_arg["color"].get<std::string>() ;
+    string department_id= func_arg["department_id"].get<std::string>() ;
+
+    string jobTitle_id  = func_arg["jobTitle_id"].get<std::string>() ;
+    string type         = func_arg["type"].get<std::string>() ;
+    string birthday     = func_arg["birthday"].get<std::string>() ;
+    string dateEntry    = func_arg["dateEntry"].get<std::string>() ;
+    string dateLeave    = func_arg["dateLeave"].get<std::string>() ;
+
+    string school       = func_arg["school"].get<std::string>() ;
+    string education    = func_arg["education"].get<std::string>() ;
+    string phoneJob     = func_arg["phoneJob"].get<std::string>() ;
+    string phoneSelf    = func_arg["phoneSelf"].get<std::string>() ;
+    string mail         = func_arg["mail"].get<std::string>() ;
+
+    string address      = func_arg["address"].get<std::string>() ;
+    string note         = func_arg["note"].get<std::string>() ;
+//    string photo        = func_arg["photo"].get<std::string>() ;
+    string exist        = func_arg["exist"].get<std::string>() ;
+
+    string grade        = func_arg["grade"].get<std::string>() ;
+    string tech_grade   = func_arg["tech_grade"].get<std::string>() ;
+    string file_ext     = func_arg["file_ext"].get<std::string>() ;
+
+    string str_b64      = func_arg["photo"].get<std::string>() ;
+    string decoded      = base64_decode(str_b64);
+
+//    string str_bin = "";
+//    for ( int i = 0 ;  i <(int)decoded.length() ; i++ )
+//    {
+//        bitset<8>b(decoded[i]) ;
+//        str_bin += b.to_string();
+//    }
+    string photo        = str_b64;
+//    cout << "?????" << endl ;
+
+    /*
+    "staff ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), number VARCHAR(40) NOT NULL, UNIQUE (number), INDEX index_staff(number), " ;
+     = "tag_id VARCHAR(16), INDEX index_tag_id( tag_id ), Name VARCHAR(40)" + ",lastName VARCHAR(40)" + ", firstName VARCHAR(40)" + ",EnglishName VARCHAR(40) ," ;
+     = "gender VARCHAR(10)," + "card_id VARCHAR(40)," + "status VARCHAR(40)," + "department VARCHAR(40)," + "jobTitle VARCHAR(40)," +  "type VARCHAR(40),";
+     = "birthday VARCHAR(10)," + "dateEntry VARCHAR(10)" + ", dateLeave VARCHAR(10)" + ", school VARCHAR(40)" + ", education VARCHAR(10)"
+            + ", phoneJob VARCHAR(20)" + ", phoneSelf VARCHAR(20)" + ", mail VARCHAR(60)" + ", address TEXT" + ", note TEXT" + ", photo BLOB" + ", exist INT" + ")";
+    */
+
+    // id, number, tag_id, Name, lastName, firstName, EnglishName, gender, card_id, status, department, jobTitle, type, birthday, photo, note
+
+    string query = string("") + "UPDATE staff SET tag_id = '" + tag_id + "', Name = '" + Name + "', lastName = '" +  lastName + "', firstName = '" + firstName
+                   + "', EnglishName = '" + EnglishName  + "', gender = '" + gender + "', card_id = '" + card_id + "', status = '" + status + "', color_type = '" + color_type
+                   + "', color = '" + color + "', department_id = '" + department_id + "', jobTitle_id = '" + jobTitle_id + "', type = '" + type + "', birthday = '" + birthday
+                   + "', dateEntry = '" + dateEntry + "', dateLeave = '" + dateLeave + "', school = '" + school + "', education = '" + education + "', phoneJob = '" + phoneJob
+                   + "', phoneSelf = '" + phoneSelf + "', mail = '" + mail + "', address = '" + address + "', note = '" + note + "', photo = '" + photo
+                   + "', exist = '" + exist + "', grade = '" + grade + "', tech_grade = '" + tech_grade + "', file_ext = '" + file_ext
+                   + "' where number = '" +  number + "' ;" ;
+
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+
+
+
 int SQL_EditDepartment( Statement *&state, json func_arg )
 {
 
@@ -844,15 +1027,85 @@ int SQL_EditJobTitle( Statement *&state, json func_arg )
 
 int SQL_EditUserType( Statement *&state, json func_arg )
 {
-
-//    string t_id         = func_arg["t_id"].get<std::string>() ;
     string type         = func_arg["type"].get<std::string>() ;
     string color        = func_arg["color"].get<std::string>() ;
-//    string new_name     = func_arg["new_name"].get<std::string>() ;
-
 
 //    string query = string("") + "UPDATE user_type SET type = '" + type + "', color = '" + color + "' where t_id = '" +  t_id + "' ;" ;
     string query = string("") + "UPDATE user_type SET color = '" + color + "' where type = '" +  type + "' ;" ;
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+
+int SQL_EditMap( Statement *&state, json func_arg )
+{
+    string map_id       = func_arg["map_id"].get<std::string>() ;
+    string map_name     = func_arg["map_name"].get<std::string>() ;
+    string map_file     = func_arg["map_file"].get<std::string>() ;
+    string map_scale    = func_arg["map_scale"].get<std::string>() ;
+    string map_file_ext = func_arg["map_file_ext"].get<std::string>() ;
+
+//    string query = string("") + "UPDATE user_type SET type = '" + type + "', color = '" + color + "' where t_id = '" +  t_id + "' ;" ;
+    string query = string("") + "UPDATE map_info SET map_name = '" + map_name + "', map_file = '" + map_file + "', map_scale = '" + map_scale + "', map_file_ext = '" + map_file_ext + "' where map_id = '" +  map_id + "' ;" ;
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+int SQL_EditTime_Slot( Statement *&state, json func_arg )
+{
+    // id, time_slot_name, Mon_start, Mon_end, Tue_start, Tue_end, Wed_start, Wed_end, Thu_start, Thu_end, Fir_start, Fir_end, Sat_start, Sat_end, Sun_start, Sun_end
+    string id               = func_arg["time_id"].get<std::string>() ;
+    string time_slot_name   = func_arg["time_slot_name"].get<std::string>() ;
+    string Mon_start        = func_arg["Mon_start"].get<std::string>() ;
+    string Mon_end          = func_arg["Mon_end"].get<std::string>() ;
+    string Tue_start        = func_arg["Tue_start"].get<std::string>() ;
+    string Tue_end          = func_arg["Tue_end"].get<std::string>() ;
+    string Wed_start        = func_arg["Wed_start"].get<std::string>() ;
+    string Wed_end          = func_arg["Wed_end"].get<std::string>() ;
+    string Thu_start        = func_arg["Thu_start"].get<std::string>() ;
+    string Thu_end          = func_arg["Thu_end"].get<std::string>() ;
+    string Fir_start        = func_arg["Fir_start"].get<std::string>() ;
+    string Fir_end          = func_arg["Fir_end"].get<std::string>() ;
+    string Sat_start        = func_arg["Sat_start"].get<std::string>() ;
+    string Sat_end          = func_arg["Sat_end"].get<std::string>() ;
+    string Sun_start        = func_arg["Sun_start"].get<std::string>() ;
+    string Sun_end          = func_arg["Sun_end"].get<std::string>() ;
+
+
+
+//    string query = string("") + "UPDATE user_type SET type = '" + type + "', color = '" + color + "' where t_id = '" +  t_id + "' ;" ;
+    string query = string("") + "UPDATE time_slot_info SET time_slot_name = '" + time_slot_name + "', Mon_start = '" + Mon_start + "', Mon_end = '" + Mon_end +
+                                "', Tue_start = '" + Tue_start + "', Tue_end = '" + Tue_end + "', Wed_start = '" + Wed_start + "', Wed_end = '" + Wed_end +
+                                "', Thu_start = '" + Thu_start + "', Thu_end = '" + Thu_end + "', Fir_start = '" + Fir_start + "', Fir_end = '" + Fir_end +
+                                "', Sat_start = '" + Sat_start + "', Sat_end = '" + Sat_end + "', Sun_start = '" + Sun_start + "', Sun_end = '" + Sun_end +
+                                "' where id = '" +  id + "' ;" ;
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+int SQL_EditAlarmInfo( Statement *&state, json func_arg )
+{
+    string id                   = func_arg["alarm_iid"].get<std::string>() ;
+    string alarm_name           = func_arg["alarm_name"].get<std::string>() ;
+    string alarm_switch         = func_arg["alarm_switch"].get<std::string>() ;
+    string alarm_value          = func_arg["alarm_value"].get<std::string>() ;
+    string alarm_group_info_id  = func_arg["alarm_group_info_id"].get<std::string>() ;
+
+
+//    string query = string("") + "UPDATE user_type SET type = '" + type + "', color = '" + color + "' where t_id = '" +  t_id + "' ;" ;
+    string query = string("") + "UPDATE alarm_info SET alarm_name = '" + alarm_name + "', alarm_switch = '" + alarm_switch + "', alarm_value = '" + alarm_value + "', alarm_group_info_id = '" + alarm_group_info_id + "' where id = '" +  id + "' ;" ;
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+int SQL_EditAlarmGroupInfo( Statement *&state, json func_arg )
+{
+    string id               = func_arg["alarm_gid"].get<std::string>() ;
+    string alarm_group_name = func_arg["alarm_group_name"].get<std::string>() ;
+    string time_slot_id     = func_arg["time_slot_id"].get<std::string>() ;
+
+//    string query = string("") + "UPDATE user_type SET type = '" + type + "', color = '" + color + "' where t_id = '" +  t_id + "' ;" ;
+    string query = string("") + "UPDATE alarm_group_info SET alarm_group_name = '" + alarm_group_name + "', time_slot_id = '" + time_slot_id + "' where id = '" +  id + "' ;" ;
     SQL_OFF_SafeUpdate(state);
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
@@ -878,6 +1131,13 @@ int SQL_DeleteUserType( Statement *&state, string type )
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
+int SQL_DeleteTime_Slot( Statement *&state, string id )
+{
+    string query = string("") + "delete from time_slot_info where id = \"" + id + "\";";
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
 int SQL_DeleteStaff( Statement *&state, string number )
 {
     string query = string("") + "delete from staff where number = \"" + number + "\";";
@@ -885,6 +1145,19 @@ int SQL_DeleteStaff( Statement *&state, string number )
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
+int SQL_DeleteAlarm_Info( Statement *&state, string id )
+{
+    string query = string("") + "delete from alarm_info where id = \"" + id + "\";";
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+int SQL_DeleteAlarm_Group_Info( Statement *&state, string id )
+{
+    string query = string("") + "delete from alarm_group_info where id = \"" + id + "\";";
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
 
 
 int SQL_OFF_SafeUpdate( Statement *&state )
@@ -1076,17 +1349,21 @@ json json_SQL_GetMaps( Statement *&state, ResultSet *&result )
         while (result->next())
         {
             //string id = result->getString("id");
-            string map_id   = result->getString("map_id");
-            string map_name = result->getString("map_name");
-            string map_path = result->getString("map_path");
-            string map_scale= result->getString("map_scale");
+            string map_id       = result->getString("map_id");
+            string map_name     = result->getString("map_name");
+            string map_file     = result->getString("map_file");
+            string map_scale    = result->getString("map_scale");
+            string map_file_ext = result->getString("map_file_ext");
+
+
             //string time = result->getString("time");
 
             //temp["id"] = id;
-            temp["map_id"]      = map_id;
-            temp["map_name"]    = map_name;
-            temp["map_path"]    = map_path;
-            temp["map_scale"]   = map_scale;
+            temp["map_id"]          = map_id;
+            temp["map_name"]        = map_name;
+            temp["map_file"]        = map_file;
+            temp["map_scale"]       = map_scale;
+            temp["map_file_ext"]    = map_file_ext;
             //temp["time"] = time;
 
             foo["Values"].push_back(temp);
@@ -1177,7 +1454,8 @@ json json_SQL_GetOneStaffPhoto( Statement *&state, ResultSet *&result, json func
                 save_photo( target, encoded, file_ext ) ;
             }
 
-            temp["photo"] = encoded;
+            temp["photo"]       = encoded;
+            temp["file_ext"]    = file_ext;
 
             foo["Values"].push_back(temp);
             temp.clear();
@@ -1748,6 +2026,143 @@ json json_SQL_GetUserTypes( Statement *&state, ResultSet *&result )
     return foo ;
 }
 
+json json_alarm_GroupBy_id( json group, json single )
+{
+
+    json ret = group ;
+
+    for ( int i = 0 ; i < ret["Values"].size() ; i++ )
+    {
+        for ( int j = 0 ; j < single["Values"].size() ; j++ )
+        {
+            if ( ret["Values"][i]["alarm_gid"] == single["Values"][j]["alarm_group_info_id"] )
+            {
+                ret["Values"][i]["elements"].push_back( single["Values"][j] ) ;
+            }
+        }
+    }
+    cout << ret.dump(2) << endl ;
+    return ret ;
+}
+
+
+//json json_SQL_GetAlarmTypes( Statement *&state, ResultSet *&result )
+//{
+//    json tree ;
+//
+//    json foo ;
+//    foo["success"] = 0 ;
+//    json temp ;
+//    string query = "SELECT * FROM alarm_info ;";
+//    try
+//    {
+//        result = state->executeQuery(query);
+//        while (result->next()) // get each node from DB, and save into the temp json array.
+//        {
+//            string alarm_id     = result->getString("id");
+//            string alarm_name   = result->getString("alarm_name");
+//            string alarm_switch = result->getString("alarm_switch");
+//            string alarm_value  = result->getString("alarm_value");
+//
+//            temp["alarm_id"]        = alarm_id;
+//            temp["alarm_name"]      = alarm_name;
+//            temp["alarm_switch"]    = alarm_switch;
+//            temp["alarm_value"]     = alarm_value;
+//
+//            tree.push_back(temp);
+//            temp.clear();
+//        }
+//    }
+//    catch(sql::SQLException& e)
+//    {
+//        std::cout << e.what() << std::endl;
+//        return foo ;
+//    }
+//
+//    foo["Values"] = tree ;
+//    foo["success"] = 1 ;
+//    return foo ;
+//}
+
+json json_SQL_GetAlarmGroup_list( Statement *&state, ResultSet *&result )
+{
+    json tree ;
+
+    json foo ;
+    foo["success"] = 0 ;
+    json temp ;
+    string query = "SELECT * FROM alarm_group_info ;";
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next()) // get each node from DB, and save into the temp json array.
+        {
+            string alarm_gid        = result->getString("id");
+            string alarm_group_name = result->getString("alarm_group_name");
+            string time_slot_id     = result->getString("time_slot_id");
+
+            temp["alarm_gid"]           = alarm_gid;
+            temp["alarm_group_name"]    = alarm_group_name;
+            temp["time_slot_id"]        = time_slot_id;
+
+            tree.push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+    foo["Values"] = tree ;
+    foo["success"] = 1 ;
+    return foo ;
+}
+
+json json_SQL_GetAlarmInfo_list( Statement *&state, ResultSet *&result )
+{
+    json tree ;
+
+    json foo ;
+    foo["success"] = 0 ;
+    json temp ;
+    string query = "SELECT * FROM alarm_info ;";
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next()) // get each node from DB, and save into the temp json array.
+        {
+
+            string alarm_iid            = result->getString("id");
+            string alarm_name           = result->getString("alarm_name");
+
+            string alarm_switch         = result->getString("alarm_switch");
+            string alarm_value          = result->getString("alarm_value");
+            string alarm_group_info_id  = result->getString("alarm_group_info_id");
+
+            temp["alarm_iid"]           = alarm_iid;
+            temp["alarm_name"]          = alarm_name;
+
+            temp["alarm_switch"]        = alarm_switch;
+            temp["alarm_value"]         = alarm_value;
+            temp["alarm_group_info_id"] = alarm_group_info_id;
+
+            tree.push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+    foo["Values"] = tree ;
+    foo["success"] = 1 ;
+    return foo ;
+}
+
 json json_SQL_Return_inserted_dept_id( Statement *&state, ResultSet *&result )
 {
     json tree ;
@@ -1811,7 +2226,36 @@ json json_SQL_Return_inserted_job_id( Statement *&state, ResultSet *&result )
     return foo ;
 }
 
+json json_SQL_Return_alarm_gid( Statement *&state, ResultSet *&result )
+{
+    json tree ;
 
+    json foo ;
+    foo["success"] = 0 ;
+    json temp ;
+    string query = "select id from alarm_group_info order by id desc limit 0,1;";
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next())
+        {
+            string id     = result->getString("id");
+            temp["id"]    = id;
+            tree = temp ;
+//            tree.push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+    foo["Values"] = tree ;
+    foo["success"] = 1 ;
+    return foo ;
+}
 
 
 
@@ -3336,12 +3780,16 @@ json Alarm::add_to_alarm_top50_list( json j_list, json input )
     return j_list ;
 }
 
-json Alarm::combine_staff_info_to_alarm_list( json staff, json alarm ) {
+json Alarm::combine_staff_info_to_alarm_list( json staff, json alarm )
+{
     json rtn ;
     json temp ;
-    for ( int i = 0 ; i < alarm.size() ; i++ ) {
-        for ( int j = 0 ; j < staff.size() ; j++ ) {
-            if ( alarm[i]["tag_id"] == staff[j]["tag_id"] ) {
+    for ( int i = 0 ; i < alarm.size() ; i++ )
+    {
+        for ( int j = 0 ; j < staff.size() ; j++ )
+        {
+            if ( alarm[i]["tag_id"] == staff[j]["tag_id"] )
+            {
 
                 temp["tag_id"]  = alarm[i]["tag_id"] ;
                 temp["time"]    = alarm[i]["time"] ;
