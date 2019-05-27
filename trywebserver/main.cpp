@@ -2476,6 +2476,89 @@ bool is_time_late_now( string in )
 }
 
 volatile bool Record2SQL = true ;
+
+int CaculateWeekDay(int y, int m, int d)
+{
+    if(m==1||m==2) //把一月和二月换算成上一年的十三月和是四月
+    {
+        m+=12;
+        y--;
+    }
+    int Week=(d+2*m+3*(m+1)/5+y+y/4-y/100+y/400)%7;
+    Week++ ;
+    switch(Week)
+    {
+    case 1:
+        cout << "是星期一" << endl;
+        break;
+    case 2:
+
+        cout << "是星期二" << endl;
+        break;
+    case 3:
+
+        cout << "是星期三" << endl;
+        break;
+    case 4:
+
+        cout << "是星期四" << endl;
+        break;
+    case 5:
+
+        cout << "是星期五" << endl;
+        break;
+    case 6:
+
+        cout << "是星期六" << endl;
+        break;
+    case 7:
+
+        cout << "是星期日" << endl;
+        break;
+    }
+    return Week ;
+}
+
+void Seperate_Date( string tmp, int &y, int &m, int&d )
+{
+    // 2019/12/13/18:30:50:54 -> 2019-12-13/18:30:50:54
+    for ( int i = 0 ; i <2; i++ )
+        tmp = tmp.replace( tmp.find( "/"),1,"-" );
+
+    int current = 0;
+    int pos = tmp.find_first_of("/", current);
+
+    int pos_1st = tmp.find_first_of("-", current) +1;
+    int pos_2nd = tmp.find_first_of("-", pos_1st) +1;
+    int pos_3rd = tmp.find_first_of("/", pos_2nd) +1;
+    cout << pos_1st << " " << pos_2nd << " " << pos_3rd << endl ;
+
+    y = atoi( tmp.substr(current, pos_1st - current).c_str() );
+    m = atoi( tmp.substr(pos_1st, pos_2nd - pos_1st).c_str() );
+    d = atoi( tmp.substr(pos_2nd, pos_3rd - pos_2nd).c_str() );
+
+}
+
+string Get_Alarm_type_name( int i )
+{
+
+    if ( i == 1 )
+        return "low_power" ;
+    else if ( i == 2 )
+        return "help" ;
+    else if ( i == 3 )
+        return "active" ;
+    else if ( i == 4 )
+        return "still" ;
+    else if ( i == 5 )
+        return "fence" ;
+    else if ( i == 6 )
+        return "stay" ;
+    else if ( i == 6 )
+        return "hidden" ;
+
+}
+
 //json visible_list ; // last next tag_list
 //json invisible_list ;
 //
@@ -2522,7 +2605,7 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
 
 
 
-        // update invisible & visible List ***********
+        // update invisible & visible List HEAD***********
         for ( int j = 0 ; j < func_alarm.visible_list.size() ; j++ )
         {
             json walk = func_alarm.visible_list[j] ;
@@ -2543,7 +2626,8 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
                     in_realtime_list = true ;
                 }
 
-                func_alarm.remove_from_invisible_list( temp_id ) ; // if found the realtime_tag in invisible_list , delete that record.
+                // if found the realtime_tag in invisible_list , delete that record.
+//                func_alarm.remove_from_invisible_list( temp_id ) ;
             } // for
 
 
@@ -2561,7 +2645,7 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
 
             } // if
         } // for int j = 0 ;
-        // update invisible & visible List END *****************************************
+        // update invisible & visible List TAIL *****************************************
 
 
 
@@ -2581,18 +2665,20 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
             long temp_y = (long)(Tag_Map_point[i].point.y / temp_scale);
             string temp_id = Tag_Map_point[i].Tag_Map_string ;
             string time = Tag_record_info[i].Tag_info_record[Tag_record_info[i].Info_count - 1].System_Time ;
+            string group = "1" ;
 
             // cout << time << endl ;
 
-            // Write the Locus into DB START*******
+            // Write the Locus into DB HEAD*******
             string temp_date_time = Trans2Standard(time); // Transfer time to standard format.
             if ( Record2SQL && _SQL_flag )
-                SQL_AddLocus_combine( state, temp_id, to_string(temp_x), to_string(temp_y), "1",  temp_date_time ) ;
-            // write the Locus into DB END*******
+                SQL_AddLocus_combine( state, temp_id, to_string(temp_x), to_string(temp_y), group, temp_date_time ) ;
+            // write the Locus into DB TAIL*******
 
 
             // Check this tag_id in the visible_list or not.
-            if ( !func_alarm.search_visible_list( temp_id ) ) { // not in the visible list
+            if ( !func_alarm.search_visible_list( temp_id ) )  // if not in the visible list, add it in the list.
+            {
                 json j_vis ;
                 j_vis["tag_id"] = temp_id ;
                 j_vis["time"]   = temp_date_time ;
@@ -2645,14 +2731,77 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
                             Tag_Map_Status_temp->System_Time = Tag_Status_record_info[i].Status_info_record[Tag_Status_record_info[i].Info_count - 1].System_Time;
                             Tag_Map_Status_temp->Tag_ID = Tag_Status_record_info[i].Tag_ID;
 
-                            // Write EVENT into Database START*******
+                            // Write EVENT into Database HEAD*******
                             string temp_time = Tag_Map_Status_temp->System_Time ;
                             string temp_id = Tag_Map_Status_temp->Tag_ID ;
-                            string temp_status = to_string(Tag_Map_Status_temp->Status) ;
+                            string temp_type = to_string(Tag_Map_Status_temp->Status) ;
                             string temp_date_time = Trans2Standard(temp_time);
                             if ( Record2SQL && _SQL_flag )
-                                SQL_AddEvent( state, temp_id, temp_status, "",temp_date_time ) ;
-                            // Write EVENT into Database END*******
+                            {
+
+                                string event_type = "" ;
+
+                                // the int correspond to alarm name.
+                                temp_type = Get_Alarm_type_name( Tag_Map_Status_temp->Status ) ;
+
+                                json the_j_staff = Find_staff_byTag( temp_id ) ;
+                                if ( the_j_staff.size() == 1 ) // found the one staff by tag id.
+                                {
+                                    json the_alarm_group = Find_alarm_group_byStaff( the_j_staff ) ;
+                                    string time_group_id = the_alarm_group["time_group_id"].get<std::string>() ;
+                                    // found the alarm group by staff's alarm type.
+                                    json the_single_alarm = Find_single_alarm_byAlarmName( the_alarm_group, temp_type ) ;
+                                    if ( the_single_alarm.size() != 0 )
+                                    {
+                                        bool the_switch = the_single_alarm["alarm_switch"].get<bool>() ;
+                                        if ( the_switch )    // if this alarm_switch on.
+                                        {
+
+                                            if ( temp_type == "hidden" || temp_type == "stay" )
+                                            {
+                                                int yy = 0, mm = 0, dd = 0 ;
+                                                Seperate_Date( temp_time, yy, mm, dd ) ;
+                                                int weekDay = CaculateWeekDay( yy, mm, dd ) ;
+
+                                                json the_single_time_group = Find_time_group_byTime_gid( time_group_id ) ;
+                                                bool is_in_time_slot = Walk_single_time_group_byWeekDay( the_single_time_group, weekDay, temp_time );
+
+                                                if ( is_in_time_slot ) // if in the time slot.
+                                                {
+                                                    event_type = "Start" ;
+                                                }
+                                                else // if not in the time slot.
+                                                {
+                                                    event_type = "Occurring" ;
+                                                    if ( temp_type == "hidden" )
+                                                    {
+                                                        event_type = "Offline" ;
+                                                    }
+                                                }
+
+                                            }
+                                            else
+                                            {
+                                                event_type = "Start" ;
+                                            }
+
+                                        } // if this alarm_switch on.
+
+                                        else // if alarm_switch off.
+                                        {
+                                            event_type = "Disable" ;
+                                        } // if alarm_switch off
+
+                                    } // found the alarm group by tag staff.
+
+                                } // found the one staff by tag id.
+
+
+
+
+                                SQL_AddEvent( state, temp_id, temp_type, event_type, temp_date_time ) ;
+                            }
+                            // Write EVENT into Database TAIL*******
 
                             //display_status();
                             Request_Alarm_Status_temp[request_alarm_count].Status = Tag_Map_Status_temp->Status;
@@ -2687,10 +2836,10 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
                 // Write EVENT into Database START*******
                 string temp_time = Tag_Map_Status_temp->System_Time ;
                 string temp_id = Tag_Map_Status_temp->Tag_ID ;
-                string temp_status = to_string(Tag_Map_Status_temp->Status) ;
+                string temp_type = to_string(Tag_Map_Status_temp->Status) ;
                 string temp_date_time = Trans2Standard(temp_time);
                 if ( Record2SQL && _SQL_flag )
-                    SQL_AddEvent( state, temp_id, temp_status, "",temp_date_time ) ;
+                    SQL_AddEvent( state, temp_id, temp_type, "",temp_date_time ) ;
                 // Write EVENT into Database END*******
 
 
@@ -4200,7 +4349,7 @@ void loc_run2()
     }
 
     Location_cleanup = ( Cleanup ) dlsym(handle, Location_Cleanup );
-    if ( Location_cleanup)
+    if ( Location_cleanup )
         Location_cleanup() ;
 
     cout << "before close" << endl ;

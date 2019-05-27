@@ -53,8 +53,12 @@ int SQL_ExecuteUpdate_single( Statement *&state, string input );
 
 json Call_SQL_func( string func_name, json func_arg );
 
-int SQL_AddAnchor( Statement *&state, string id, string x, string y, string type ) ;
-int SQL_AddGroup( Statement *&state, string group_id, string main_anchor_id, string mode, string mode_value, string fence ) ;
+int SQL_AddAnchor( Statement *&state, string id, string x, string y, string type );
+int SQL_EditAnchor_Info( Statement *&state, json func_arg );
+
+int SQL_AddGroup_Info( Statement *&state, string group_id, string group_name, string main_anchor_id, string mode, string mode_value, string fence );
+int SQL_EditGroup_Info( Statement *&state, json func_arg );
+
 
 int SQL_AddMap( Statement *&state, string map_name, string map_file, string map_scale, string map_file_ext ) ;
 int SQL_EditMap( Statement *&state, json func_arg ) ;
@@ -62,6 +66,10 @@ int SQL_DeleteMap( Statement *&state, string id );
 
 int SQL_AddGroup_Anchor( Statement *&state, string group_id, string main_anchor_id ) ;
 int SQL_AddMap_Group( Statement *&state, string map_id, string group_id ) ;
+int SQL_DeleteMap_Group_by_one_id( Statement *&state, string m_id ) ;
+int SQL_DeleteMap_Group_by_duo_id( Statement *&state, string m_id, string g_id ) ;
+
+
 
 int SQL_AddLocus( Statement *&state, string tag_id, string x, string y, string group_id, string date, string time ) ;
 int SQL_AddLocus_combine( Statement *&state, string tag_id, string x, string y, string group_id,  string time ) ;
@@ -88,21 +96,32 @@ int SQL_EditUserType( Statement *&state, json func_arg ) ;
 int SQL_DeleteUserType( Statement *&state, string type ) ;
 
 
+//** Time HEAD
 int SQL_AddTime_Slot( Statement *&state, string time_slot_name, string Mon_start, string Mon_end, string Tue_start, string Tue_end,
-                string Wed_start, string Wed_end, string Thu_start, string Thu_end, string Fir_start, string Fir_end,
-                string Sat_start, string Sat_end, string Sun_start, string Sun_end );
+                      string Wed_start, string Wed_end, string Thu_start, string Thu_end, string Fir_start, string Fir_end,
+                      string Sat_start, string Sat_end, string Sun_start, string Sun_end );
 int SQL_EditTime_Slot( Statement *&state, json func_arg );
 int SQL_DeleteTime_Slot( Statement *&state, string id );
 
+int SQL_AddTimeSlot_Group( Statement *&state, string time_group_id, string time_slot_id );
+int SQL_DeleteTime_Slot_Group( Statement *&state, string time_group_id );
 
-int SQL_AddAlarm_Info( Statement *&state, string alarm_name, string alarm_switch, string alarm_value, string alarm_group_info_id );
+int SQL_AddTime_Group( Statement *&state, string time_group_name );
+int SQL_DeleteTime_Group( Statement *&state, string time_group_id );
+int SQL_EditTime_Group( Statement *&state, json func_arg );
+//** Time TAIL ******************/
+
+
+//** Alarm HEAD ***************
+int SQL_AddAlarm_Info( Statement *&state, string alarm_name, string alarm_switch, string alarm_value, string alarm_group_id );
 int SQL_EditAlarmInfo( Statement *&state, json func_arg );
 int SQL_DeleteAlarm_Info( Statement *&state, string id );
 
-
-int SQL_AddAlarm_Group_Info( Statement *&state, string alarm_group_name, string time_slot_id );
+int SQL_AddAlarm_Group_Info( Statement *&state, string alarm_group_name, string time_group_id );
 int SQL_EditAlarmGroupInfo( Statement *&state, json func_arg );
 int SQL_DeleteAlarm_Group_Info( Statement *&state, string id );
+//** Alarm TAIL *******************/
+
 
 
 int SQL_multiEdit_StaffDepartment( Statement *&state, string number, string department_id ) ;
@@ -114,10 +133,12 @@ int SQL_multiEdit_StaffSetColor( Statement *&state, string number, string color_
 
 
 int SQL_OFF_SafeUpdate( Statement *&state );
-int SQL_DeleteAnchor( Statement *&state, string id );
+int SQL_DeleteAnchor_Info( Statement *&state, string id );
 
-int SQL_DeleteGroup( Statement *&state, string id );
-int SQL_DeleteGroup_Anchor( Statement *&state, string gid, string anid );
+int SQL_DeleteGroup_Info( Statement *&state, string id );
+int SQL_DeleteGroup_Anchor_by_one_id( Statement *&state, string gid );
+int SQL_DeleteGroup_Anchor_by_duo_id( Statement *&state, string gid, string anid );
+
 int SQL_DeleteTag( Statement *&state, string id );
 int SQL_TruncateTable( Statement *&state, string id ) ;
 
@@ -127,6 +148,7 @@ json json_SQL_GetGroups_info( Statement *&state, ResultSet *&result );
 json json_SQL_GetMaps( Statement *&state, ResultSet *&result );
 
 json json_SQL_GetOneStaffPhoto( Statement *&state, ResultSet *&result, json func_arg );
+json json_SQL_GetAnchorsInMap( Statement *&state, ResultSet *&result, json func_arg );
 
 
 json json_SQL_Get_One_Staff( Statement *&state, ResultSet *&result, json func_arg );
@@ -143,6 +165,15 @@ json json_alarm_GroupBy_id( json group, json single ) ;
 json json_SQL_GetAlarmInfo_list( Statement *&state, ResultSet *&result );
 json json_SQL_GetAlarmGroup_list( Statement *&state, ResultSet *&result );
 // Alarm END
+
+
+json json_time_GroupBy_id( json group, json group_single, json single );
+
+json json_SQL_GetTimeSlot_list( Statement *&state, ResultSet *&result );
+json json_SQL_GetTimeGroup_list( Statement *&state, ResultSet *&result );
+json json_SQL_GetTimeSlot_group( Statement *&state, ResultSet *&result );
+
+
 
 json json_SQL_Return_inserted_dept_id( Statement *&state, ResultSet *&result );
 json json_SQL_Return_inserted_job_id( Statement *&state, ResultSet *&result );
@@ -185,6 +216,15 @@ string SQL_Get_indexOf_locus_index_by_hour( string date_hour );
 string SQL_Get_indexOf_locus_index_by_next_hour( string rownum );
 string SQL_Get_indexOf_locus_index_by_min( string date_hour ) ;
 string SQL_Get_indexOf_locus_index_by_next_min( string rownum );
+
+
+
+json Find_staff_byTag( string tag_id ) ;
+json Find_alarm_group_byStaff( json aStaff ) ;
+json Find_single_alarm_byAlarmName( json the_alarm_group, string alarm_name ) ;
+json Find_time_group_byTime_gid( string time_group_id ) ;
+bool Walk_single_time_group_byWeekDay( json time_element, int WeekDay, string tag_time );
+
 
 
 
