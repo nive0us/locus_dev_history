@@ -1797,7 +1797,7 @@ void Read_RF_setting()
 char* new_ip_addr = "192.168.1.202";
 char* new_mask_addr = "255.255.255.0";
 char* new_gw_addr = "192.168.1.254" ;
-char* ip_adr = "192.168.1.93";
+char* ip_adr = "192.168.1.63";
 
 
 int sockSrv;
@@ -2531,7 +2531,7 @@ void Seperate_Date( string tmp, int &y, int &m, int&d )
     int pos_1st = tmp.find_first_of("-", current) +1;
     int pos_2nd = tmp.find_first_of("-", pos_1st) +1;
     int pos_3rd = tmp.find_first_of("/", pos_2nd) +1;
-    cout << pos_1st << " " << pos_2nd << " " << pos_3rd << endl ;
+//    cout << "str_date pos:" << pos_1st << " " << pos_2nd << " " << pos_3rd << endl ;
 
     y = atoi( tmp.substr(current, pos_1st - current).c_str() );
     m = atoi( tmp.substr(pos_1st, pos_2nd - pos_1st).c_str() );
@@ -2583,6 +2583,83 @@ string Get_Alarm_type_name( int i )
 //    return false ;
 //}
 
+void Match_AlarmTime_Cache( string temp_time, string temp_id, string temp_type, string &event_type )
+{
+    json the_j_staff = Find_staff_byTag( temp_id ) ;
+    cout << "one staff :" << the_j_staff.dump(2) << endl ;
+    if ( !the_j_staff.empty() ) // found the one staff by tag id.
+    {
+        cout << "got staff" << endl ;
+        json the_alarm_group = Find_alarm_group_byStaff( the_j_staff ) ;
+
+        cout << "one alarm group :" << the_alarm_group.dump(2) << endl ;
+        if ( !the_alarm_group.empty() )
+        {
+            cout << "got alarm group" << endl ;
+            string time_group_id = the_alarm_group["time_group_id"].get<std::string>() ;
+            // found the alarm group by staff's alarm type.
+            json the_single_alarm = Find_single_alarm_byAlarmName( the_alarm_group, temp_type ) ;
+            cout << "alarm type :" << temp_type << endl ;
+            cout << "one single alarm :" << the_single_alarm.dump(2) << endl ;
+
+            if ( !the_single_alarm.empty() )
+            {
+                cout << "got single alarm" << endl ;
+                string the_switch = the_single_alarm["alarm_switch"].get<std::string>() ;
+//                                            bool the_switch = true ;
+                if ( "1" == the_switch )    // if this alarm_switch on.
+                {
+
+                    if ( temp_type == "hidden" || temp_type == "stay" || temp_type == "help" )
+                    {
+                        int yy = 0, mm = 0, dd = 0 ;
+                        Seperate_Date( temp_time, yy, mm, dd ) ;
+                        int weekDay = CaculateWeekDay( yy, mm, dd ) ;
+
+                        bool is_in_time_slot = false ;
+
+                        json the_single_time_group = Find_time_group_byTime_gid( time_group_id ) ;
+                        cout << "single time group :" << the_single_time_group.dump(2) << endl ;
+
+                        if ( !the_single_time_group.empty() )
+                            is_in_time_slot = Walk_single_time_group_byWeekDay( the_single_time_group, weekDay, temp_time );
+
+                        if ( is_in_time_slot ) // if in the time slot.
+                        {
+                            event_type = "Start" ;
+                        }
+                        else // if not in the time slot.
+                        {
+                            event_type = "Occurring" ;
+                            if ( temp_type == "hidden" )
+                            {
+                                event_type = "Offline" ;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        event_type = "Start" ;
+                    }
+
+                } // if this alarm_switch on.
+
+                else // if alarm_switch off.
+                {
+                    event_type = "Disable" ;
+                } // if alarm_switch off
+
+            } // found the single alarm from group.
+
+        } // got the staff's alarm group.
+
+
+    } // found the one staff by tag id.
+}
+
+
+
+
 Alarm func_alarm ;
 void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_record_count, Status_record* Tag_Status_record_info, unsigned int status_record_count)
 {
@@ -2606,6 +2683,7 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
 
 
         // update invisible & visible List HEAD***********
+        // cout << "j_vis_size :" << func_alarm.visible_list.size() << endl ;
         for ( int j = 0 ; j < func_alarm.visible_list.size() ; j++ )
         {
             json walk = func_alarm.visible_list[j] ;
@@ -2620,7 +2698,9 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
                 string time = Tag_record_info[k].Tag_info_record[Tag_record_info[k].Info_count - 1].System_Time ;
                 string temp_date_time = Trans2Standard(time); // Transfer time to standard format.
 
-                if ( walk["tag_id"] == temp_id )   // refresh visible_list's time
+//                 cout << walk["tag_id"].get<std::string>() << endl ;
+
+                if ( walk["tag_id"].get<std::string>() == temp_id )   // refresh visible_list's time
                 {
                     walk["tag_time"] = temp_date_time ;
                     in_realtime_list = true ;
@@ -2633,7 +2713,7 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
 
             if ( !in_realtime_list )   // doesn't in the realtime_tag list
             {
-                if ( is_time_late_now( walk["tag_time"] ) ) // if visible + offset_time < now , add to invisible
+                if ( is_time_late_now( walk["tag_time"].get<std::string>() ) ) // if visible + offset_time < now , add to invisible
                 {
                     func_alarm.invisible_list.push_back( walk ) ;
 
@@ -2646,6 +2726,7 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
             } // if
         } // for int j = 0 ;
         // update invisible & visible List TAIL *****************************************
+
 
 
 
@@ -2681,7 +2762,7 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
             {
                 json j_vis ;
                 j_vis["tag_id"] = temp_id ;
-                j_vis["time"]   = temp_date_time ;
+                j_vis["tag_time"]   = temp_date_time ;
                 func_alarm.visible_list.push_back( j_vis ) ;
                 j_vis.clear() ;
             }
@@ -2738,67 +2819,12 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
                             string temp_date_time = Trans2Standard(temp_time);
                             if ( Record2SQL && _SQL_flag )
                             {
-
                                 string event_type = "" ;
 
                                 // the int correspond to alarm name.
                                 temp_type = Get_Alarm_type_name( Tag_Map_Status_temp->Status ) ;
 
-                                json the_j_staff = Find_staff_byTag( temp_id ) ;
-                                if ( the_j_staff.size() == 1 ) // found the one staff by tag id.
-                                {
-                                    json the_alarm_group = Find_alarm_group_byStaff( the_j_staff ) ;
-                                    string time_group_id = the_alarm_group["time_group_id"].get<std::string>() ;
-                                    // found the alarm group by staff's alarm type.
-                                    json the_single_alarm = Find_single_alarm_byAlarmName( the_alarm_group, temp_type ) ;
-                                    if ( the_single_alarm.size() != 0 )
-                                    {
-                                        bool the_switch = the_single_alarm["alarm_switch"].get<bool>() ;
-                                        if ( the_switch )    // if this alarm_switch on.
-                                        {
-
-                                            if ( temp_type == "hidden" || temp_type == "stay" )
-                                            {
-                                                int yy = 0, mm = 0, dd = 0 ;
-                                                Seperate_Date( temp_time, yy, mm, dd ) ;
-                                                int weekDay = CaculateWeekDay( yy, mm, dd ) ;
-
-                                                json the_single_time_group = Find_time_group_byTime_gid( time_group_id ) ;
-                                                bool is_in_time_slot = Walk_single_time_group_byWeekDay( the_single_time_group, weekDay, temp_time );
-
-                                                if ( is_in_time_slot ) // if in the time slot.
-                                                {
-                                                    event_type = "Start" ;
-                                                }
-                                                else // if not in the time slot.
-                                                {
-                                                    event_type = "Occurring" ;
-                                                    if ( temp_type == "hidden" )
-                                                    {
-                                                        event_type = "Offline" ;
-                                                    }
-                                                }
-
-                                            }
-                                            else
-                                            {
-                                                event_type = "Start" ;
-                                            }
-
-                                        } // if this alarm_switch on.
-
-                                        else // if alarm_switch off.
-                                        {
-                                            event_type = "Disable" ;
-                                        } // if alarm_switch off
-
-                                    } // found the alarm group by tag staff.
-
-                                } // found the one staff by tag id.
-
-
-
-
+                                Match_AlarmTime_Cache( temp_time, temp_id, temp_type, event_type ) ;
                                 SQL_AddEvent( state, temp_id, temp_type, event_type, temp_date_time ) ;
                             }
                             // Write EVENT into Database TAIL*******
@@ -2810,7 +2836,7 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
 
                             json one_tag ;
                             //one_tag["status"] = Tag_Map_Status_temp->Status;
-                            one_tag["time"] = Tag_Map_Status_temp->System_Time;
+                            one_tag["tag_time"] = Tag_Map_Status_temp->System_Time;
                             one_tag["tag_id"] = Tag_Map_Status_temp->Tag_ID;
 
                             // The list that could be erase.
@@ -2839,7 +2865,15 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
                 string temp_type = to_string(Tag_Map_Status_temp->Status) ;
                 string temp_date_time = Trans2Standard(temp_time);
                 if ( Record2SQL && _SQL_flag )
+                {
+                    string event_type = "" ;
+
+                    // the int correspond to alarm name.
+                    temp_type = Get_Alarm_type_name( Tag_Map_Status_temp->Status ) ;
+
+                    Match_AlarmTime_Cache( temp_time, temp_id, temp_type, event_type ) ;
                     SQL_AddEvent( state, temp_id, temp_type, "",temp_date_time ) ;
+                }
                 // Write EVENT into Database END*******
 
 
@@ -4320,8 +4354,9 @@ void loc_run2()
                     Tag_record_info = Load_Location_coordinate(coordinate_record_count);
                 if (Load_Location_status)
                     Tag_Status_record_info = Load_Location_status(status_record_count);
-//
-//                //cout << "record count :"<<coordinate_record_count << endl;
+
+
+//                cout << "record count :"<<coordinate_record_count << endl;
                 Location_Point_display(Tag_record_info, coordinate_record_count, Tag_Status_record_info, status_record_count);
 
 

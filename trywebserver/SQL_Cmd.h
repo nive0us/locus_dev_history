@@ -178,6 +178,7 @@ json json_SQL_GetTimeSlot_group( Statement *&state, ResultSet *&result );
 json json_SQL_Return_inserted_dept_id( Statement *&state, ResultSet *&result );
 json json_SQL_Return_inserted_job_id( Statement *&state, ResultSet *&result );
 json json_SQL_Return_alarm_gid( Statement *&state, ResultSet *&result );
+json json_SQL_Return_inserted_map_id( Statement *&state, ResultSet *&result );
 
 json json_SQL_GetGroup_Anchors( Statement *&state, ResultSet *&result );
 json json_SQL_GetMap_Groups( Statement *&state, ResultSet *&result );
@@ -223,7 +224,7 @@ json Find_staff_byTag( string tag_id ) ;
 json Find_alarm_group_byStaff( json aStaff ) ;
 json Find_single_alarm_byAlarmName( json the_alarm_group, string alarm_name ) ;
 json Find_time_group_byTime_gid( string time_group_id ) ;
-bool Walk_single_time_group_byWeekDay( json time_element, int WeekDay, string tag_time );
+bool Walk_single_time_group_byWeekDay( json target_time_slot, int WeekDay, string tag_time );
 
 
 

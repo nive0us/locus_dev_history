@@ -127,7 +127,7 @@ string sql_create_time_group_info   = sql_create_table + sql_create_time_group_i
 
 string sql_create_time_slot_info1  = "time_slot_info (  id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
 string sql_create_time_slot_info2  = " time_slot_name VARCHAR(10), Mon_start VARCHAR(10), Mon_end VARCHAR(10), Tue_start VARCHAR(10), Tue_end VARCHAR(10), " ;
-string sql_create_time_slot_info3  = " Wed_start VARCHAR(10), Wed_end VARCHAR(10), Thu_start VARCHAR(10), Thu_end VARCHAR(10), Fir_start VARCHAR(10), Fir_end VARCHAR(10), " ;
+string sql_create_time_slot_info3  = " Wed_start VARCHAR(10), Wed_end VARCHAR(10), Thu_start VARCHAR(10), Thu_end VARCHAR(10), Fri_start VARCHAR(10), Fri_end VARCHAR(10), " ;
 string sql_create_time_slot_info4  = " Sat_start VARCHAR(10), Sat_end VARCHAR(10), Sun_start VARCHAR(10), Sun_end VARCHAR(10) )";
 string sql_create_time_slot_info   = sql_create_table + sql_create_time_slot_info1 + sql_create_time_slot_info2 + sql_create_time_slot_info3 + sql_create_time_slot_info4 ;
 // ex. this is a one time_slot_info : 54,time_A, 13:25:55, 18:28:65
@@ -389,7 +389,9 @@ json Call_SQL_func( string func_name, json func_arg )
                                               func_arg[i]["mode"].get<std::string>(), func_arg[i]["mode_value"].get<std::string>(), func_arg[i]["fence"].get<std::string>() ) ;
 
             else if ( func_name == "AddListMap" )
+            {
                 success += SQL_AddMap( state, func_arg[i]["map_name"].get<std::string>(), func_arg[i]["map_file"].get<std::string>(), func_arg[i]["map_scale"].get<std::string>(), func_arg[i]["map_file_ext"].get<std::string>() ) ;
+            }
 
 
             else if ( func_name == "AddListGroup_Anchor" )
@@ -412,13 +414,13 @@ json Call_SQL_func( string func_name, json func_arg )
 
             else if ( func_name == "AddTimeSlot")
             {
-                // id, time_slot_name, Mon_start, Mon_end, Tue_start, Tue_end, Wed_start, Wed_end, Thu_start, Thu_end, Fir_start, Fir_end, Sat_start, Sat_end, Sun_start, Sun_end
+                // id, time_slot_name, Mon_start, Mon_end, Tue_start, Tue_end, Wed_start, Wed_end, Thu_start, Thu_end, Fri_start, Fri_end, Sat_start, Sat_end, Sun_start, Sun_end
                 success += SQL_AddTime_Slot( state, func_arg[i]["time_slot_name"].get<std::string>(),
                                              func_arg[i]["Mon_start"].get<std::string>(), func_arg[i]["Mon_end"].get<std::string>(),
                                              func_arg[i]["Tue_start"].get<std::string>(), func_arg[i]["Tue_end"].get<std::string>(),
                                              func_arg[i]["Wed_start"].get<std::string>(), func_arg[i]["Wed_end"].get<std::string>(),
                                              func_arg[i]["Thu_start"].get<std::string>(), func_arg[i]["Thu_end"].get<std::string>(),
-                                             func_arg[i]["Fir_start"].get<std::string>(), func_arg[i]["Fir_end"].get<std::string>(),
+                                             func_arg[i]["Fri_start"].get<std::string>(), func_arg[i]["Fri_end"].get<std::string>(),
                                              func_arg[i]["Sat_start"].get<std::string>(), func_arg[i]["Sat_end"].get<std::string>(),
                                              func_arg[i]["Sun_start"].get<std::string>(), func_arg[i]["Sun_end"].get<std::string>() );
                 do_update_time_list = true ;
@@ -493,7 +495,7 @@ json Call_SQL_func( string func_name, json func_arg )
 
             else if ( func_name == "DeleteMap_Group" )
             {
-                if ( func_arg[i]["anchor_id"].empty() )
+                if ( func_arg[i]["map_id"].empty() )
                 {
                     success += SQL_DeleteMap_Group_by_one_id( state, func_arg[i]["map_id"] );
                 } // if
@@ -653,7 +655,8 @@ json Call_SQL_func( string func_name, json func_arg )
 
 
 
-
+//        do_update_time_list = true ;
+//        do_update_alarm_list = true ;
         cout << func_name << endl ;
 
         if ( func_name == "GetAnchors" || func_name == "AddListAnchor" )
@@ -674,7 +677,13 @@ json Call_SQL_func( string func_name, json func_arg )
         else if ( func_name == "GetOneStaff" )
             ret = json_SQL_Get_One_Staff( state, result, func_arg ) ;
         else if ( func_name == "GetStaffs" )
+        {
             ret = json_SQL_GetStaffs( state, result );
+            j_staff_list = update_staff_list( ret ) ;
+            cout << j_staff_list.dump(2) << endl ;
+
+        }
+
         else if ( func_name == "GetDepartment_relation" )
             ret = json_SQL_GetDepartment_relation( state, result );
         else if ( func_name == "GetJobTitle_relation" )
@@ -687,36 +696,39 @@ json Call_SQL_func( string func_name, json func_arg )
             ret = json_SQL_GetUserTypes( state, result );
         else if ( func_name == "GetAlarmInfo" )
             ret = json_SQL_GetAlarmInfo_list( state, result );
-        else if ( func_name == "GetAlarmGroup_list" || do_update_alarm_list )
+        else if ( func_name == "GetTimeSlot_list" )
+            ret = json_SQL_GetTimeSlot_list( state, result );
+
+
+        if ( func_name == "GetAlarmGroup_list" || do_update_alarm_list )
         {
             // alarm_group
             json alarm_g = json_SQL_GetAlarmGroup_list( state, result );
-            cout << alarm_g.dump(2) << endl ;
+            // cout << alarm_g.dump(2) << endl ;
 
             // alarm_info
             json alarm_i = json_SQL_GetAlarmInfo_list( state, result );
-            cout << alarm_i.dump(2) << endl ;
-            if ( do_update_alarm_list )
-                j_alarm_list = json_alarm_GroupBy_id( alarm_g, alarm_i );
-            else if ( !do_update_alarm_list )
-                ret = json_alarm_GroupBy_id( alarm_g, alarm_i );
+            // cout << alarm_i.dump(2) << endl ;
+
+            j_alarm_list = json_alarm_GroupBy_id( alarm_g, alarm_i );
+
+            if ( !do_update_alarm_list )
+                ret = j_alarm_list ;
+
             do_update_alarm_list = false ;
         }
-        else if ( func_name == "GetTimeSlot_list" )
-        {
-            ret = json_SQL_GetTimeSlot_list( state, result );
-        }
-        else if ( func_name == "GetTimeGroup_list" || do_update_time_list )
+
+
+        if ( func_name == "GetTimeGroup_list" || do_update_time_list )
         {
             json time_g     = json_SQL_GetTimeGroup_list( state, result );
             json time_gi    = json_SQL_GetTimeSlot_group( state, result );
             json time_i     = json_SQL_GetTimeSlot_list( state, result );
 
-            if ( do_update_time_list )
-                j_time_list = json_time_GroupBy_id( time_g, time_gi, time_i ) ;
+            j_time_list = json_time_GroupBy_id( time_g, time_gi, time_i ) ;
 
-            else if ( !do_update_time_list )
-                ret = json_time_GroupBy_id( time_g, time_gi, time_i ) ;
+            if ( !do_update_time_list )
+                ret = j_time_list ;
 
             do_update_time_list = false ;
         }
@@ -853,13 +865,13 @@ int SQL_AddAlarm_Group_Info( Statement *&state, string alarm_group_name, string 
 }
 
 int SQL_AddTime_Slot( Statement *&state, string time_slot_name, string Mon_start, string Mon_end, string Tue_start, string Tue_end,
-                      string Wed_start, string Wed_end, string Thu_start, string Thu_end, string Fir_start, string Fir_end,
+                      string Wed_start, string Wed_end, string Thu_start, string Thu_end, string Fri_start, string Fri_end,
                       string Sat_start, string Sat_end, string Sun_start, string Sun_end )
 {
-    //time_slot_name, Mon_start, Mon_end, Tue_start, Tue_end, Wed_start, Wed_end, Thu_start, Thu_end, Fir_start, Fir_end, Sat_start, Sat_end, Sun_start, Sun_end
+    //time_slot_name, Mon_start, Mon_end, Tue_start, Tue_end, Wed_start, Wed_end, Thu_start, Thu_end, Fri_start, Fri_end, Sat_start, Sat_end, Sun_start, Sun_end
     string query = string("") + "INSERT INTO time_slot_info VALUES ( '0','" + time_slot_name + "', '" +
                    Mon_start + "', '" + Mon_end + "', '" + Tue_start + "', '" + Tue_end + "', '" + Wed_start + "', '" + Wed_end + "', '" +
-                   Thu_start + "', '" + Thu_end + "', '" + Fir_start + "', '" + Fir_end + "', '" + Sat_start + "', '" + Sat_end + "', '" + Sun_start + "', '" + Sun_end  + "' );";
+                   Thu_start + "', '" + Thu_end + "', '" + Fri_start + "', '" + Fri_end + "', '" + Sat_start + "', '" + Sat_end + "', '" + Sun_start + "', '" + Sun_end  + "' );";
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
@@ -1237,7 +1249,7 @@ int SQL_EditMap( Statement *&state, json func_arg )
 
 int SQL_EditTime_Slot( Statement *&state, json func_arg )
 {
-    // id, time_slot_name, Mon_start, Mon_end, Tue_start, Tue_end, Wed_start, Wed_end, Thu_start, Thu_end, Fir_start, Fir_end, Sat_start, Sat_end, Sun_start, Sun_end
+    // id, time_slot_name, Mon_start, Mon_end, Tue_start, Tue_end, Wed_start, Wed_end, Thu_start, Thu_end, Fri_start, Fri_end, Sat_start, Sat_end, Sun_start, Sun_end
     string id               = func_arg["time_slot_id"].get<std::string>() ;
     string time_slot_name   = func_arg["time_slot_name"].get<std::string>() ;
     string Mon_start        = func_arg["Mon_start"].get<std::string>() ;
@@ -1248,8 +1260,8 @@ int SQL_EditTime_Slot( Statement *&state, json func_arg )
     string Wed_end          = func_arg["Wed_end"].get<std::string>() ;
     string Thu_start        = func_arg["Thu_start"].get<std::string>() ;
     string Thu_end          = func_arg["Thu_end"].get<std::string>() ;
-    string Fir_start        = func_arg["Fir_start"].get<std::string>() ;
-    string Fir_end          = func_arg["Fir_end"].get<std::string>() ;
+    string Fri_start        = func_arg["Fri_start"].get<std::string>() ;
+    string Fri_end          = func_arg["Fri_end"].get<std::string>() ;
     string Sat_start        = func_arg["Sat_start"].get<std::string>() ;
     string Sat_end          = func_arg["Sat_end"].get<std::string>() ;
     string Sun_start        = func_arg["Sun_start"].get<std::string>() ;
@@ -1260,7 +1272,7 @@ int SQL_EditTime_Slot( Statement *&state, json func_arg )
 //    string query = string("") + "UPDATE user_type SET type = '" + type + "', color = '" + color + "' where t_id = '" +  t_id + "' ;" ;
     string query = string("") + "UPDATE time_slot_info SET time_slot_name = '" + time_slot_name + "', Mon_start = '" + Mon_start + "', Mon_end = '" + Mon_end +
                    "', Tue_start = '" + Tue_start + "', Tue_end = '" + Tue_end + "', Wed_start = '" + Wed_start + "', Wed_end = '" + Wed_end +
-                   "', Thu_start = '" + Thu_start + "', Thu_end = '" + Thu_end + "', Fir_start = '" + Fir_start + "', Fir_end = '" + Fir_end +
+                   "', Thu_start = '" + Thu_start + "', Thu_end = '" + Thu_end + "', Fri_start = '" + Fri_start + "', Fri_end = '" + Fri_end +
                    "', Sat_start = '" + Sat_start + "', Sat_end = '" + Sat_end + "', Sun_start = '" + Sun_start + "', Sun_end = '" + Sun_end +
                    "' where id = '" +  id + "' ;" ;
     SQL_OFF_SafeUpdate(state);
@@ -1269,7 +1281,7 @@ int SQL_EditTime_Slot( Statement *&state, json func_arg )
 
 int SQL_EditTime_Group( Statement *&state, json func_arg )
 {
-    // id, time_slot_name, Mon_start, Mon_end, Tue_start, Tue_end, Wed_start, Wed_end, Thu_start, Thu_end, Fir_start, Fir_end, Sat_start, Sat_end, Sun_start, Sun_end
+    // id, time_slot_name, Mon_start, Mon_end, Tue_start, Tue_end, Wed_start, Wed_end, Thu_start, Thu_end, Fri_start, Fri_end, Sat_start, Sat_end, Sun_start, Sun_end
     string time_group_id    = func_arg["time_group_id"].get<std::string>() ;
     string time_group_name  = func_arg["time_group_name"].get<std::string>() ;
 
@@ -2453,7 +2465,7 @@ json json_SQL_GetTimeSlot_list( Statement *&state, ResultSet *&result )
         result = state->executeQuery(query);
         while (result->next()) // get each node from DB, and save into the temp json array.
         {
-            // id, time_slot_name, Mon_start, Mon_end, Tue_start, Tue_end, Wed_start, Wed_end, Thu_start, Thu_end, Fir_start, Fir_end, Sat_start, Sat_end, Sun_start, Sun_end
+            // id, time_slot_name, Mon_start, Mon_end, Tue_start, Tue_end, Wed_start, Wed_end, Thu_start, Thu_end, Fri_start, Fri_end, Sat_start, Sat_end, Sun_start, Sun_end
             string time_slot_id     = result->getString("id");
             string time_slot_name   = result->getString("time_slot_name");
 
@@ -2465,8 +2477,8 @@ json json_SQL_GetTimeSlot_list( Statement *&state, ResultSet *&result )
             string Wed_end      = result->getString("Wed_end");
             string Thu_start    = result->getString("Thu_start");
             string Thu_end      = result->getString("Thu_end");
-            string Fir_start    = result->getString("Fir_start");
-            string Fir_end      = result->getString("Fir_end");
+            string Fri_start    = result->getString("Fri_start");
+            string Fri_end      = result->getString("Fri_end");
             string Sat_start    = result->getString("Sat_start");
             string Sat_end      = result->getString("Sat_end");
             string Sun_start    = result->getString("Sun_start");
@@ -2483,8 +2495,8 @@ json json_SQL_GetTimeSlot_list( Statement *&state, ResultSet *&result )
             temp["Wed_end"]     = Wed_end;
             temp["Thu_start"]   = Thu_start;
             temp["Thu_end"]     = Thu_end;
-            temp["Fir_start"]   = Fir_start;
-            temp["Fir_end"]     = Fir_end;
+            temp["Fri_start"]   = Fri_start;
+            temp["Fri_end"]     = Fri_end;
             temp["Sat_start"]   = Sat_start;
             temp["Sat_end"]     = Sat_end;
             temp["Sun_start"]   = Sun_start;
@@ -2593,7 +2605,7 @@ json json_time_GroupBy_id( json group, json group_single, json single )
         }
     }
 
-    cout << j_combine.dump(2) << endl ;
+    cout << "combine :" << j_combine.dump(2) << endl ;
 
     json ret = group ;
 
@@ -2612,6 +2624,36 @@ json json_time_GroupBy_id( json group, json group_single, json single )
     return ret ;
 }
 
+json json_SQL_Return_inserted_map_id( Statement *&state, ResultSet *&result )
+{
+    json tree ;
+
+    json foo ;
+    foo["success"] = 0 ;
+    json temp ;
+    string query = "select map_id from map_info order by id desc limit 0,1;";
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next())
+        {
+            string map_id     = result->getString("map_id");
+            temp["map_id"]    = map_id;
+            tree = temp ;
+//            tree.push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+    foo["Values"] = tree ;
+    foo["success"] = 1 ;
+    return foo ;
+}
 
 json json_SQL_Return_inserted_dept_id( Statement *&state, ResultSet *&result )
 {
@@ -2817,14 +2859,16 @@ json json_SQL_GetTags_info( Statement *&state, ResultSet *&result )
 
 json Find_staff_byTag( string tag_id )
 {
+//    cout << j_staff_list.dump(2) << endl ;
 
-    for ( int i = 0 ; i < j_staff_list["Values"].size() ; i++ )
+    for ( int i = 0 ; i < j_staff_list.size() ; i++ )
     {
-        if ( j_staff_list["Values"][i]["tag_id"].get<std::string>() == tag_id )
+        if ( j_staff_list[i]["tag_id"].get<std::string>() == tag_id )
         {
-            return j_staff_list["Values"][i] ;
+            return j_staff_list[i] ;
         } // if
     } // for
+    return nullptr ;
 
 } // Find_staff_byTag
 
@@ -2838,6 +2882,7 @@ json Find_alarm_group_byStaff( json aStaff )
             return j_alarm_list["Values"][i] ;
         }
     }
+    return nullptr ;
 } // Find_alarm_byStaff
 
 json Find_single_alarm_byAlarmName( json the_alarm_group, string alarm_name )
@@ -2848,7 +2893,7 @@ json Find_single_alarm_byAlarmName( json the_alarm_group, string alarm_name )
         if ( the_alarm_group["elements"][i]["alarm_name"].get<std::string>() == alarm_name )
             return the_alarm_group["elements"][i] ;
     } // for
-
+    return nullptr ;
 } // Find_single_alarm_byAlarmName
 
 json Find_time_group_byTime_gid( string time_group_id )
@@ -2858,13 +2903,14 @@ json Find_time_group_byTime_gid( string time_group_id )
         if ( j_time_list["Values"][i]["time_group_id"].get<std::string>() == time_group_id )
             return j_time_list["Values"][i] ;
     } // for
+    return nullptr ;
 }
 
 
-int Clock_to_int( string tmp )
+int Clock_to_int_byDate( string str_with_date )
 {
     int hh = 0, mm = 0, ss = 0 ;
-
+    string tmp = str_with_date ;
     // 2019/12/13/18:30:50:54 -> 2019-12-13/18:30:50:54
     for ( int i = 0 ; i <2 ; i++ )
         tmp = tmp.replace( tmp.find( "/"),1,"-" );
@@ -2887,9 +2933,34 @@ int Clock_to_int( string tmp )
 
 }
 
-
-bool Walk_single_time_group_byWeekDay( json time_element, int WeekDay, string tag_time )
+int Clock_to_int( string str_without_date )
 {
+    int hh = 0, mm = 0, ss = 0 ;
+
+    // 18:30:50:54 -> 18:30:50:54
+    string tmp = str_without_date ;
+//    cout << tmp << endl ;
+    int pos = 0;
+
+    int pos_1st = tmp.find_first_of(":", pos) +1;
+    int pos_2nd = tmp.find_first_of(":", pos_1st) +1;
+    int pos_3rd = tmp.find_first_of(":", pos_2nd) +1;
+//    cout << pos_1st << " " << pos_2nd << " " << pos_3rd << endl ;
+
+    hh = atoi( tmp.substr(pos, pos_1st - pos).c_str() );
+    mm = atoi( tmp.substr(pos_1st, pos_2nd - pos_1st).c_str() );
+    ss = atoi( tmp.substr(pos_2nd, pos_3rd - pos_2nd).c_str() );
+//    cout << hh << " " << mm << " " << ss << endl ;
+
+    return hh*3600 + mm*60 + ss ;
+
+}
+
+
+bool Walk_single_time_group_byWeekDay( json target_time_slot, int WeekDay, string tag_time )
+{
+    json time_elements = target_time_slot["elements"] ;
+    cout << "elements :" << time_elements.dump(2) << endl ;
     string str_day = "" ;
 
     if ( WeekDay == 1 )
@@ -2908,13 +2979,17 @@ bool Walk_single_time_group_byWeekDay( json time_element, int WeekDay, string ta
         str_day = "Sun" ;
 
     string day_start = str_day + "_start", day_end = str_day + "_end" ;
+//    cout << "start time :" << day_start << ", end time :" << day_end << endl ;
     int db_clock_start = 0, db_clock_end = 0, tag_clock = 0 ;
-    for ( int i = 0 ; i < time_element.size() ; i++ )
+    for ( int i = 0 ; i < time_elements.size() ; i++ )
     {
+        cout << i << "->" << time_elements[i][day_start].get<std::string>() << endl ;
+        string _start = time_elements[i][day_start].get<std::string>() ;
+        string _end = time_elements[i][day_end].get<std::string>() ;
 
-        db_clock_start = Clock_to_int( time_element[i][day_start].get<std::string>() ) ;
-        db_clock_end = Clock_to_int( time_element[i][day_end].get<std::string>() ) ;
-        tag_clock = Clock_to_int( tag_time ) ;
+        db_clock_start = Clock_to_int( _start ) ;
+        db_clock_end = Clock_to_int( _end ) ;
+        tag_clock = Clock_to_int_byDate( tag_time ) ;
 
         if ( tag_clock >= db_clock_start && tag_clock <= db_clock_end )
             return true ;
@@ -4293,7 +4368,7 @@ bool Alarm::remove_from_invisible_list( string target_tag )
         if ( invisible_list[i]["tag_id"] == target_tag )
         {
             invisible_list[i].erase("tag_id");
-            invisible_list[i].erase("time");
+            invisible_list[i].erase("tag_time");
             //input[i].erase("tag_id");
             return true ;
         }
@@ -4308,7 +4383,7 @@ bool Alarm::remove_from_status_list( string target_tag )
         if ( alarm_status_list[i]["tag_id"] == target_tag )
         {
             alarm_status_list[i].erase("tag_id");
-            alarm_status_list[i].erase("time");
+            alarm_status_list[i].erase("tag_time");
             //input[i].erase("tag_id");
             return true ;
         }
@@ -4334,7 +4409,7 @@ json Alarm::add_to_alarm_top50_list( json j_list, json input )
     if ( j_list.size() == 50 )
     {
         j_list[0].erase("tag_id") ;
-        j_list[0].erase("time") ;
+        j_list[0].erase("tag_time") ;
     } // if
 
     j_list.push_back(input) ;
@@ -4352,11 +4427,11 @@ json Alarm::combine_staff_info_to_alarm_list( json staff, json alarm )
             if ( alarm[i]["tag_id"] == staff[j]["tag_id"] )
             {
 
-                temp["tag_id"]  = alarm[i]["tag_id"] ;
-                temp["time"]    = alarm[i]["time"] ;
+                temp["tag_id"]      = alarm[i]["tag_id"] ;
+                temp["tag_time"]    = alarm[i]["tag_time"] ;
 
-                temp["Name"]    = staff[j]["tag_id"] ;
-                temp["number"]    = staff[j]["number"] ;
+                temp["Name"]        = staff[j]["Name"] ;
+                temp["number"]      = staff[j]["number"] ;
                 rtn.push_back(temp) ;
 
             }
@@ -4382,7 +4457,7 @@ json Alarm::Call_Alarm_func( string func_name, json func_arg )
 
         if ( func_name == "EditInvisibleList" )
         {
-            SQL_AddEvent( state,  func_arg["tag_id"].get<std::string>(), "Invisible", "End", "2019-04-09 11:53:00" );
+            SQL_AddEvent( state,  func_arg["tag_id"].get<std::string>(), "Invisible", "End", func_arg["tag_time"].get<std::string>() );
             remove_from_invisible_list( func_arg["tag_id"].get<std::string>() ) ;
             ret = invisible_list ;
         }
