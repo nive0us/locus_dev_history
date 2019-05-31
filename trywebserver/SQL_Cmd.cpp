@@ -457,7 +457,6 @@ json Call_SQL_func( string func_name, json func_arg )
                 do_update_alarm_list = true ;
             }
 
-
             else if ( func_name == "AddDepartment" )
             {
                 success += SQL_AddDepartment( state, func_arg[i] ) ;
@@ -545,15 +544,24 @@ json Call_SQL_func( string func_name, json func_arg )
                 success += SQL_DeleteAlarm_Group_Info( state, func_arg[i]["alarm_gid"].get<std::string>() ) ;
                 do_update_alarm_list = true ;
             }
+
             else if ( func_name == "DeleteTimeSlot" )
             {
                 success += SQL_DeleteTime_Slot( state, func_arg[i]["time_slot_id"].get<std::string>() ) ;
+                success += SQL_DeleteTime_Slot_Group_bySId( state, func_arg[i]["time_slot_id"].get<std::string>() ) ;
                 do_update_time_list = true ;
             }
+
+            else if ( func_name == "DeleteTimeSlotGroup" )
+            {
+                success += SQL_DeleteTime_Slot_Group_byDuoId( state, func_arg[i]["time_group_id"].get<std::string>(), func_arg[i]["time_slot_id"].get<std::string>() ) ;
+                do_update_time_list = true ;
+            }
+
             else if ( func_name == "DeleteTimeGroup" )
             {
                 success += SQL_DeleteTime_Group( state, func_arg[i]["time_group_id"].get<std::string>() ) ;
-                success += SQL_DeleteTime_Slot_Group( state, func_arg[i]["time_group_id"].get<std::string>() ) ;
+                success += SQL_DeleteTime_Slot_Group_byGId( state, func_arg[i]["time_group_id"].get<std::string>() ) ;
                 do_update_time_list = true ;
             }
 
@@ -641,7 +649,7 @@ json Call_SQL_func( string func_name, json func_arg )
 
         else if ( func_name == "EditTimeGroup" )
         {
-            success += SQL_EditTime_Group( state, func_arg) ;
+            success += SQL_EditTime_Group( state, func_arg ) ;
             do_update_time_list = true ;
         }
 
@@ -651,6 +659,21 @@ json Call_SQL_func( string func_name, json func_arg )
             success += SQL_AddAlarm_Group_Info( state, func_arg["alarm_group_name"].get<std::string>(), func_arg["time_group_id"].get<std::string>() );
             do_update_alarm_list = true ;
             ret = json_SQL_Return_alarm_gid( state, result );
+        }
+
+        else if (func_name == "AddTimeGroup" )
+        {
+            success += SQL_AddTime_Group( state, func_arg["time_group_name"].get<std::string>() );
+            do_update_time_list = true ;
+            ret = json_SQL_Return_time_gid( state, result );
+        }
+
+
+
+        else if (func_name == "AddTimeSlotGroup" )
+        {
+            success += SQL_AddTimeSlot_Group( state, func_arg["time_group_id"].get<std::string>(), func_arg["time_slot_id"].get<std::string>() );
+            do_update_time_list = true ;
         }
 
 
@@ -1347,9 +1370,24 @@ int SQL_DeleteTime_Slot( Statement *&state, string id )
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
-int SQL_DeleteTime_Slot_Group( Statement *&state, string time_group_id )
+int SQL_DeleteTime_Slot_Group_byGId( Statement *&state, string time_group_id )
 {
     string query = string("") + "delete from time_slot_group where time_group_id = \"" + time_group_id + "\";";
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+int SQL_DeleteTime_Slot_Group_bySId( Statement *&state, string time_slot_id )
+{
+    string query = string("") + "delete from time_slot_group where time_slot_id = \"" + time_slot_id + "\";";
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+
+int SQL_DeleteTime_Slot_Group_byDuoId( Statement *&state, string time_group_id, string time_slot_id  )
+{
+    string query = string("") + "delete from time_slot_group where time_group_id = \"" + time_group_id + "\" and time_slot_id = \"" + time_slot_id + "\";";
     SQL_OFF_SafeUpdate(state);
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
@@ -2749,6 +2787,37 @@ json json_SQL_Return_alarm_gid( Statement *&state, ResultSet *&result )
     return foo ;
 }
 
+json json_SQL_Return_time_gid( Statement *&state, ResultSet *&result )
+{
+    json tree ;
+
+    json foo ;
+    foo["success"] = 0 ;
+    json temp ;
+    string query = "select id from time_group_info order by id desc limit 0,1;";
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next())
+        {
+            string id     = result->getString("id");
+            temp["time_gid"]    = id;
+            tree = temp ;
+//            tree.push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+    foo["Values"] = tree ;
+    foo["success"] = 1 ;
+    return foo ;
+}
+
 
 
 json json_SQL_GetGroup_Anchors( Statement *&state, ResultSet *&result )
@@ -2855,6 +2924,32 @@ json json_SQL_GetTags_info( Statement *&state, ResultSet *&result )
 
     foo["success"] = 1 ;
     return foo ;
+}
+
+void Combine_staff_info( json &tag_list, json one_tag )
+{
+    json ret_j ;
+
+    if ( !one_tag.empty() )
+    {
+        for ( int j = 0 ; j < j_staff_list.size() ; j++ )
+        {
+            if ( one_tag["tag_id"] == j_staff_list[j]["tag_id"] )
+            {
+                json a;
+                a = one_tag ;
+                a["number"] = j_staff_list[j]["number"] ;
+                a["Name"]   = j_staff_list[j]["Name"] ;
+                tag_list.push_back( a ) ;
+                break;
+            } // if
+
+        } // for loop j_staff_list
+
+        tag_list.push_back( one_tag ) ;
+    } // if one_tag != empty
+
+    // return ret_j ;
 }
 
 json Find_staff_byTag( string tag_id )
@@ -2972,7 +3067,7 @@ bool Walk_single_time_group_byWeekDay( json target_time_slot, int WeekDay, strin
     else if ( WeekDay == 4 )
         str_day = "Thu" ;
     else if ( WeekDay == 5 )
-        str_day = "Fir" ;
+        str_day = "Fri" ;
     else if ( WeekDay == 6 )
         str_day = "Sat" ;
     else if ( WeekDay == 7 )
@@ -2990,6 +3085,11 @@ bool Walk_single_time_group_byWeekDay( json target_time_slot, int WeekDay, strin
         db_clock_start = Clock_to_int( _start ) ;
         db_clock_end = Clock_to_int( _end ) ;
         tag_clock = Clock_to_int_byDate( tag_time ) ;
+
+//        cout << "start int :" << db_clock_start << endl ;
+//        cout << "end int :" << db_clock_end << endl ;
+//        cout << "tag :" << tag_clock << endl ;
+
 
         if ( tag_clock >= db_clock_start && tag_clock <= db_clock_end )
             return true ;
@@ -3071,9 +3171,10 @@ json Request_RemoveFromAlarmList( Statement *&state, json func_arg )
     {
         if ( j_response["Values"][i]["tag_id"] == tmp_id ) // tag already in list
         {
-            j_response["Values"][i].erase("tag_id");
-            j_response["Values"][i].erase("tag_status");
-            j_response["Values"][i].erase("tag_time");
+//            j_response["Values"][i].erase("tag_id");
+//            j_response["Values"][i].erase("tag_status");
+//            j_response["Values"][i].erase("tag_time");
+            j_response["Values"].erase(i);
             act_success = 1 ;
         } // if
 
@@ -4354,48 +4455,50 @@ int SQL_EventType( Statement *&state, json func_arg )
 
 
 
-json Alarm::visible_list ; // last next tag_list
-json Alarm::invisible_list ;
-json Alarm::alarm_status_list ; // allow delete from web UI
-json Alarm::alarm_top50_list ;  // keep latest 50 alarm tag_id
+json RequestList::visible_list ; // last next tag_list
+json RequestList::invisible_list ;
+json RequestList::alarm_status_list ; // allow delete from web UI
+json RequestList::alarm_top50_list ;  // keep latest 50 alarm tag_id
 
-int Alarm::bar;
+int RequestList::bar;
 
-bool Alarm::remove_from_invisible_list( string target_tag )
+bool RequestList::remove_from_invisible_list( string target_tag )
 {
     for ( int i = 0 ; i < invisible_list.size() ; i++ )
     {
         if ( invisible_list[i]["tag_id"] == target_tag )
         {
-            invisible_list[i].erase("tag_id");
-            invisible_list[i].erase("tag_time");
-            //input[i].erase("tag_id");
+//            invisible_list[i].erase("tag_id");
+//            invisible_list[i].erase("tag_time");
+//            //input[i].erase("tag_id");
+            invisible_list.erase(i) ;
             return true ;
         }
     }
     return false ;
 }
 
-bool Alarm::remove_from_status_list( string target_tag )
+bool RequestList::remove_from_status_list( string target_tag )
 {
     for ( int i = 0 ; i < alarm_status_list.size() ; i++ )
     {
-        if ( alarm_status_list[i]["tag_id"] == target_tag )
+        if ( alarm_status_list[i]["tag_id"].get<std::string>() == target_tag )
         {
-            alarm_status_list[i].erase("tag_id");
-            alarm_status_list[i].erase("tag_time");
-            //input[i].erase("tag_id");
+//            alarm_status_list[i].erase("tag_id");
+//            alarm_status_list[i].erase("tag_time");
+//            //input[i].erase("tag_id");
+            alarm_status_list.erase(i) ;
             return true ;
         }
     }
     return false ;
 }
 
-bool Alarm::search_visible_list( string target_tag )
+bool RequestList::search_visible_list( string target_tag )
 {
     for ( int i = 0 ; i < visible_list.size() ; i++ )
     {
-        if ( visible_list[i]["tag_id"] == target_tag )
+        if ( visible_list[i]["tag_id"].get<std::string>() == target_tag )
         {
             return true ;
         }
@@ -4404,19 +4507,21 @@ bool Alarm::search_visible_list( string target_tag )
 }
 
 
-json Alarm::add_to_alarm_top50_list( json j_list, json input )
+json RequestList::add_to_alarm_top50_list( json j_list, json input )
 {
-    if ( j_list.size() == 50 )
+    if ( 50 == j_list.size() )
     {
-        j_list[0].erase("tag_id") ;
-        j_list[0].erase("tag_time") ;
+////        j_list[0].erase("tag_id") ;
+////        j_list[0].erase("tag_time") ;
+//        j_list[0].clear();
+        j_list.erase(0) ;
     } // if
 
     j_list.push_back(input) ;
     return j_list ;
 }
 
-json Alarm::combine_staff_info_to_alarm_list( json staff, json alarm )
+json RequestList::combine_staff_info_to_alarm_list( json staff, json alarm )
 {
     json rtn ;
     json temp ;
@@ -4440,7 +4545,7 @@ json Alarm::combine_staff_info_to_alarm_list( json staff, json alarm )
     return rtn ;
 }
 
-json Alarm::Call_Alarm_func( string func_name, json func_arg )
+json RequestList::Call_RequestList_func( string func_name, json func_arg )
 {
 
     json ret ;
@@ -4462,8 +4567,12 @@ json Alarm::Call_Alarm_func( string func_name, json func_arg )
             ret = invisible_list ;
         }
 
+        if ( func_name == "GetInvisibleList" )
+        {
+            ret = invisible_list ;
+        }
 
-        if ( func_name == "GetAlarmStatusList" )
+        else if ( func_name == "GetAlarmStatusList" )
         {
             ret = alarm_status_list ;
         }

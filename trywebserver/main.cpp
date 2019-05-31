@@ -1797,7 +1797,7 @@ void Read_RF_setting()
 char* new_ip_addr = "192.168.1.202";
 char* new_mask_addr = "255.255.255.0";
 char* new_gw_addr = "192.168.1.254" ;
-char* ip_adr = "192.168.1.63";
+char* ip_adr = "192.168.1.130";
 
 
 int sockSrv;
@@ -2427,7 +2427,7 @@ string Get_Today_date_hour_min()
     struct tm* ptm = NULL;
     time_t t = time(NULL);
     ptm = localtime(&t);
-    strftime(buf,sizeof(buf),"%Y-%m-%d %H:%M",ptm);
+    strftime(buf,sizeof(buf),"%Y/%m/%d/%H:%M:%S",ptm);
 //    cout<<buf<<endl;
 
 
@@ -2469,10 +2469,19 @@ void check_locus_index_hour_min()
 
     //usleep(0);
 }
+int Clock_to_int_byDate( string str_with_date ) ;
 
-bool is_time_late_now( string in )
+bool is_time_late_now( string in, string time_offset )
 {
-    return true ;
+    int input_time = Clock_to_int_byDate( in ) ;
+    int offset = stoi( time_offset ) ;
+    cout << "int offset :" << offset << endl ;
+    int realtime =  Clock_to_int_byDate ( Get_Today_date_hour_min() ) ;
+
+    if ( input_time + offset < realtime )
+        return true ;
+    else
+        return false ;
 }
 
 volatile bool Record2SQL = true ;
@@ -2582,8 +2591,41 @@ string Get_Alarm_type_name( int i )
 //    }
 //    return false ;
 //}
+RequestList func_alarm ;
 
-void Match_AlarmTime_Cache( string temp_time, string temp_id, string temp_type, string &event_type )
+string Get_alarm_value_byTag_n_alarm_name( string temp_id, string temp_type )
+{
+    json the_j_staff = Find_staff_byTag( temp_id ) ;
+
+    if ( !the_j_staff.empty() ) // found the one staff by tag id.
+    {
+        json the_alarm_group = Find_alarm_group_byStaff( the_j_staff ) ;
+
+        if ( !the_alarm_group.empty() )
+        {
+            string time_group_id = the_alarm_group["time_group_id"].get<std::string>() ;
+            // found the alarm group by staff's alarm type.
+            json the_single_alarm = Find_single_alarm_byAlarmName( the_alarm_group, temp_type ) ;
+            cout << "alarm type :" << temp_type << endl ;
+            cout << "one single alarm :" << the_single_alarm.dump(2) << endl ;
+
+            if ( !the_single_alarm.empty() )
+            {
+                string the_switch = the_single_alarm["alarm_switch"].get<std::string>() ;
+                string the_alarm_value = the_single_alarm["alarm_value"].get<std::string>() ;
+                return the_alarm_value ;
+            }
+
+        }
+    }
+
+    return "" ;
+}
+
+
+
+
+void Match_AlarmTime_Cache( string temp_id, string temp_time, string temp_type, string &event_type )
 {
     json the_j_staff = Find_staff_byTag( temp_id ) ;
     cout << "one staff :" << the_j_staff.dump(2) << endl ;
@@ -2606,6 +2648,7 @@ void Match_AlarmTime_Cache( string temp_time, string temp_id, string temp_type, 
             {
                 cout << "got single alarm" << endl ;
                 string the_switch = the_single_alarm["alarm_switch"].get<std::string>() ;
+                string the_alarm_value = the_single_alarm["alarm_value"].get<std::string>() ;
 //                                            bool the_switch = true ;
                 if ( "1" == the_switch )    // if this alarm_switch on.
                 {
@@ -2626,15 +2669,58 @@ void Match_AlarmTime_Cache( string temp_time, string temp_id, string temp_type, 
 
                         if ( is_in_time_slot ) // if in the time slot.
                         {
-                            event_type = "Start" ;
+                            cout << "in time slot." << endl ;
+                            if ( temp_type == "hidden" )
+                            {
+
+                                event_type = "Start" ;
+
+                                /*
+                                if ( is_time_late_now( temp_time, the_alarm_value ) ) // if visible + offset_time < now , add to invisible
+                                {
+                                    event_type = "Start" ;
+                                    json j_put ;
+                                    j_put["tag_id"]         = temp_id ;
+                                    j_put["tag_time"]       = temp_time ;
+                                    j_put["tag_alarm_type"] = temp_type ;
+
+                                    func_alarm.invisible_list.push_back( j_put ) ;
+                                    j_put.clear() ;
+
+                                } // is_time_late_now
+
+                                else   // normal , visible
+                                {
+                                    event_type = "not_hidden" ;
+                                }
+                                //*/
+
+                            } // alarm type is "hidden"
+
+                            else if ( temp_type == "stay" )
+                            {
+
+                            }
+
+                            else // other type excluding hidden and stay
+                            {
+                                event_type = "Start" ;
+                            }
+
                         }
                         else // if not in the time slot.
                         {
-                            event_type = "Occurring" ;
                             if ( temp_type == "hidden" )
                             {
                                 event_type = "Offline" ;
                             }
+
+
+                            else
+                            {
+                                event_type = "Occurring" ;
+                            }
+
                         }
                     }
                     else
@@ -2658,9 +2744,28 @@ void Match_AlarmTime_Cache( string temp_time, string temp_id, string temp_type, 
 }
 
 
+void Push2RequestAlarmList( string temp_id, string temp_type, string temp_time, string event_type ) // if disable alarm ,don't put into alarm list.
+{
+    json one_tag ;
+    //one_tag["status"] = Tag_Map_Status_temp->Status;
+    one_tag["tag_time"]         = temp_time;
+    one_tag["tag_id"]           = temp_id;
+    one_tag["tag_alarm_type"]   = temp_type;
+
+    if ( event_type != "Disable" )
+    {
+        // The list that could be erase.
+        func_alarm.alarm_status_list.push_back(one_tag) ;
+        // The list keep latest 50 records.
+        func_alarm.alarm_top50_list = func_alarm.add_to_alarm_top50_list( func_alarm.alarm_top50_list, one_tag ) ;
+        one_tag.clear() ;
+    } // event_type == disable
+
+} // Push2RequestList
 
 
-Alarm func_alarm ;
+json j_requestTagList ;
+//Alarm func_alarm ;
 void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_record_count, Status_record* Tag_Status_record_info, unsigned int status_record_count)
 {
     //cout << "point display" << endl;
@@ -2676,58 +2781,7 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
             Tag_Map_point[i].point.y = Tag_record_info[i].Tag_info_record[Tag_record_info[i].Info_count - 1].y / Map_Scale;
         }
         point_count = coordinate_record_count;
-
-
         double temp_scale = (1 / image_scale);
-
-
-
-        // update invisible & visible List HEAD***********
-        // cout << "j_vis_size :" << func_alarm.visible_list.size() << endl ;
-        for ( int j = 0 ; j < func_alarm.visible_list.size() ; j++ )
-        {
-            json walk = func_alarm.visible_list[j] ;
-
-            bool in_realtime_list = false ;
-
-            for ( int k = 0 ; k < (unsigned)point_count; k++ )
-            {
-                long temp_x = (long)(Tag_Map_point[k].point.x / temp_scale);
-                long temp_y = (long)(Tag_Map_point[k].point.y / temp_scale);
-                string temp_id = Tag_Map_point[k].Tag_Map_string ;
-                string time = Tag_record_info[k].Tag_info_record[Tag_record_info[k].Info_count - 1].System_Time ;
-                string temp_date_time = Trans2Standard(time); // Transfer time to standard format.
-
-//                 cout << walk["tag_id"].get<std::string>() << endl ;
-
-                if ( walk["tag_id"].get<std::string>() == temp_id )   // refresh visible_list's time
-                {
-                    walk["tag_time"] = temp_date_time ;
-                    in_realtime_list = true ;
-                }
-
-                // if found the realtime_tag in invisible_list , delete that record.
-//                func_alarm.remove_from_invisible_list( temp_id ) ;
-            } // for
-
-
-            if ( !in_realtime_list )   // doesn't in the realtime_tag list
-            {
-                if ( is_time_late_now( walk["tag_time"].get<std::string>() ) ) // if visible + offset_time < now , add to invisible
-                {
-                    func_alarm.invisible_list.push_back( walk ) ;
-
-                }
-
-                else // if visible + offset_time > now ,nothing to do.
-                {
-                }
-
-            } // if
-        } // for int j = 0 ;
-        // update invisible & visible List TAIL *****************************************
-
-
 
 
 
@@ -2740,6 +2794,97 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
         // Init END*******
 
 
+
+        // update invisible & visible List HEAD***********
+        // cout << "j_vis_size :" << func_alarm.visible_list.size() << endl ;
+        for ( int j = 0 ; j < func_alarm.visible_list.size() ; j++ )
+        {
+//            json walk = func_alarm.visible_list[j] ;
+
+//            bool in_realtime_list = false ;
+
+            for ( int k = 0 ; k < (unsigned)point_count; k++ )
+            {
+                long temp_x = (long)(Tag_Map_point[k].point.x / temp_scale);
+                long temp_y = (long)(Tag_Map_point[k].point.y / temp_scale);
+                string temp_id = Tag_Map_point[k].Tag_Map_string ;
+                string time = Tag_record_info[k].Tag_info_record[Tag_record_info[k].Info_count - 1].System_Time ;
+                string temp_date_time = Trans2Standard(time); // Transfer time to standard format.
+
+//                 cout << walk["tag_id"].get<std::string>() << endl ;
+
+
+                if ( func_alarm.visible_list[j]["tag_id"].get<std::string>() == temp_id )   // refresh visible_list's time
+                {
+                    if ( temp_id == "0000000000000058")
+                    {
+                        cout << "in_realtime_list check" << endl ;
+                        cout << "time :" << temp_date_time << endl ;
+                    }
+
+                    func_alarm.visible_list[j]["tag_time"] = temp_date_time ;
+//                    in_realtime_list = true ;
+                }
+
+                // if found the realtime_tag in invisible_list , delete that record.
+//                func_alarm.remove_from_invisible_list( temp_id ) ;
+            } // for point_count
+
+            string walk_id      = func_alarm.visible_list[j]["tag_id"].get<std::string>() ;
+            string walk_time    = func_alarm.visible_list[j]["tag_time"].get<std::string>() ;
+
+            string custom_alarm_value = Get_alarm_value_byTag_n_alarm_name( walk_id, "hidden" ) ; // hidden's time offset
+
+            if ( is_time_late_now( walk_time, custom_alarm_value ) ) // if visible + offset_time < now , add to invisible
+            {
+                string event_type   = "" ;
+                Match_AlarmTime_Cache( walk_id, walk_time, "hidden", event_type ) ;
+
+                if ( event_type != "Disable" )
+                    func_alarm.invisible_list.push_back( func_alarm.visible_list[j] ) ;
+
+                SQL_AddEvent( state, walk_id, "hidden", event_type, walk_time ) ;
+
+                // remove from visible list
+                func_alarm.visible_list.erase(j) ;
+            } // if is_time_late_now
+
+
+
+
+//            if ( !in_realtime_list )   // doesn't in the realtime_tag list
+//            {
+//////                string walk_id      = walk["tag_id"].get<std::string>() ;
+//////                string walk_time    = walk["tag_time"].get<std::string>() ;
+//////                string event_type   = "" ;
+//////                Match_AlarmTime_Cache( walk_id, walk_time, "hidden", event_type ) ;
+//////                if ( event_type != not_hidden )
+//////                    SQL_AddEvent( state, walk_id, "hidden", event_type, walk_time ) ;
+//
+//                if ( is_time_late_now( walk["tag_time"].get<std::string>(), ) ) // if visible + offset_time < now , add to invisible
+//                {
+//                    string walk_id      = walk["tag_id"].get<std::string>() ;
+//                    string walk_time    = walk["tag_time"].get<std::string>() ;
+//                    string event_type   = "" ;
+//                    Match_AlarmTime_Cache( walk_id, walk_time, "hidden", event_type ) ;
+//                    walk["tag_alarm_type"] = "hidden" ;
+//                    if ( event_type != "Disable" )
+//                        func_alarm.invisible_list.push_back( walk ) ;
+//                    SQL_AddEvent( state, walk_id, "hidden", event_type, walk_time ) ;
+//
+//                }
+//                else // if visible + offset_time > now ,nothing to do.
+//                {
+//                }
+
+//            } // if not in_realtime_list
+
+
+        } // for int j = 0 ;
+        // update invisible & visible List TAIL *****************************************
+
+
+        j_requestTagList.clear();
         for (size_t i = 0; i < (unsigned)point_count; i++)
         {
             long temp_x = (long)(Tag_Map_point[i].point.x / temp_scale);
@@ -2747,11 +2892,22 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
             string temp_id = Tag_Map_point[i].Tag_Map_string ;
             string time = Tag_record_info[i].Tag_info_record[Tag_record_info[i].Info_count - 1].System_Time ;
             string group = "1" ;
+            string temp_date_time = Trans2Standard(time); // Transfer time to standard format.
 
             // cout << time << endl ;
 
+            json one_tag ;
+            one_tag["tag_id"]   = temp_id ;
+            one_tag["tag_x"]    = temp_x;
+            one_tag["tag_y"]    = temp_y;
+            one_tag["tag_time"] = temp_date_time;
+            one_tag["number"]   = "" ;
+            one_tag["Name"]     = "" ;
+
+            Combine_staff_info( j_requestTagList, one_tag );
+            one_tag.clear();
+
             // Write the Locus into DB HEAD*******
-            string temp_date_time = Trans2Standard(time); // Transfer time to standard format.
             if ( Record2SQL && _SQL_flag )
                 SQL_AddLocus_combine( state, temp_id, to_string(temp_x), to_string(temp_y), group, temp_date_time ) ;
             // write the Locus into DB TAIL*******
@@ -2817,14 +2973,13 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
                             string temp_id = Tag_Map_Status_temp->Tag_ID ;
                             string temp_type = to_string(Tag_Map_Status_temp->Status) ;
                             string temp_date_time = Trans2Standard(temp_time);
+                            string event_type = "" ;
                             if ( Record2SQL && _SQL_flag )
                             {
-                                string event_type = "" ;
-
                                 // the int correspond to alarm name.
                                 temp_type = Get_Alarm_type_name( Tag_Map_Status_temp->Status ) ;
 
-                                Match_AlarmTime_Cache( temp_time, temp_id, temp_type, event_type ) ;
+                                Match_AlarmTime_Cache( temp_id, temp_time, temp_type, event_type ) ;
                                 SQL_AddEvent( state, temp_id, temp_type, event_type, temp_date_time ) ;
                             }
                             // Write EVENT into Database TAIL*******
@@ -2834,15 +2989,21 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
                             Request_Alarm_Status_temp[request_alarm_count].System_Time = Tag_Map_Status_temp->System_Time;
                             Request_Alarm_Status_temp[request_alarm_count].Tag_ID = Tag_Map_Status_temp->Tag_ID;
 
-                            json one_tag ;
-                            //one_tag["status"] = Tag_Map_Status_temp->Status;
-                            one_tag["tag_time"] = Tag_Map_Status_temp->System_Time;
-                            one_tag["tag_id"] = Tag_Map_Status_temp->Tag_ID;
+//                            json one_tag ;
+//                            //one_tag["status"] = Tag_Map_Status_temp->Status;
+//                            one_tag["tag_time"]         = temp_time;
+//                            one_tag["tag_id"]           = temp_id;
+//                            one_tag["tag_alarm_type"]   = temp_type;
+//
+//                            if ( event_type == "Disable" )
+//                            {
+//                                // The list that could be erase.
+//                                func_alarm.alarm_status_list.push_back(one_tag) ;
+//                                // The list keep latest 50 records.
+//                                func_alarm.alarm_top50_list = func_alarm.add_to_alarm_top50_list( func_alarm.alarm_top50_list, one_tag ) ;
+//                            }
 
-                            // The list that could be erase.
-                            func_alarm.alarm_status_list.push_back(one_tag) ;
-                            // The list keep latest 50 records.
-                            func_alarm.add_to_alarm_top50_list( func_alarm.alarm_top50_list, one_tag ) ;
+                            Push2RequestAlarmList( temp_id, temp_type, temp_time, event_type );
 
 
                             request_alarm_count++;
@@ -2864,17 +3025,18 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
                 string temp_id = Tag_Map_Status_temp->Tag_ID ;
                 string temp_type = to_string(Tag_Map_Status_temp->Status) ;
                 string temp_date_time = Trans2Standard(temp_time);
+                string event_type = "" ;
                 if ( Record2SQL && _SQL_flag )
                 {
-                    string event_type = "" ;
-
                     // the int correspond to alarm name.
                     temp_type = Get_Alarm_type_name( Tag_Map_Status_temp->Status ) ;
 
-                    Match_AlarmTime_Cache( temp_time, temp_id, temp_type, event_type ) ;
-                    SQL_AddEvent( state, temp_id, temp_type, "",temp_date_time ) ;
+                    Match_AlarmTime_Cache( temp_id, temp_time, temp_type, event_type ) ;
+                    SQL_AddEvent( state, temp_id, temp_type, event_type, temp_date_time ) ;
                 }
                 // Write EVENT into Database END*******
+
+                Push2RequestAlarmList( temp_id, temp_type, temp_time, event_type );
 
 
                 //display_status();
@@ -3229,6 +3391,17 @@ void TCP_thread_Safe( SOCKET m_socket )
                     response_text = "{\"tag_list\":[" + tags_id + "], \"x\":[" + tags_x + "], \"y\":[" + tags_y + "], \"system_time\":[" + tags_systemTime + "]}";
                     binch2 = response_text.c_str();
                     //char binch2[] = "{\"x\":[100,200,300],\"y\":[100,200,300],\"color\":[\"#F30\",\"#09F\",\"#6C0\"]}";
+                    bytesSent = send(SOCKET_temp, (const char*)binch2, strlen(binch2), 0);
+                }
+            }
+
+            else if (strstr((char*)testbuff, "POST /requestTagList_json HTTP/1.1") != 0 || strstr((char*)testbuff, "POST /dashboard/requestTagList HTTP/1.1") != 0)
+            {
+
+                if (point_count != 0)
+                {
+                    std::string response_text = j_requestTagList.dump();
+                    binch2 = response_text.c_str();
                     bytesSent = send(SOCKET_temp, (const char*)binch2, strlen(binch2), 0);
                 }
             }
@@ -4004,7 +4177,7 @@ return_ok:
             }
 
 
-            else if (strstr((char*)testbuff, "POST /alarm HTTP/1.1") != 0 )
+            else if (strstr((char*)testbuff, "POST /request HTTP/1.1") != 0 )
             {
 
                 string target = "" ;
@@ -4043,7 +4216,7 @@ return_ok:
                         command_name = arg_from_web["Command_Name"][i].get<std::string>() ;
                         if ( _SQL_flag )
                         {
-                            j_response = func_alarm.Call_Alarm_func( command_name, j_arg );
+                            j_response = func_alarm.Call_RequestList_func( command_name, j_arg );
                         }
 //                    SQL_Close();
                     }

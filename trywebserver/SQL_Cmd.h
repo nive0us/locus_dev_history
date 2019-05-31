@@ -104,7 +104,12 @@ int SQL_EditTime_Slot( Statement *&state, json func_arg );
 int SQL_DeleteTime_Slot( Statement *&state, string id );
 
 int SQL_AddTimeSlot_Group( Statement *&state, string time_group_id, string time_slot_id );
-int SQL_DeleteTime_Slot_Group( Statement *&state, string time_group_id );
+
+int SQL_DeleteTime_Slot_Group_bySId( Statement *&state, string time_slot_id );
+int SQL_DeleteTime_Slot_Group_byDuoId( Statement *&state, string time_group_id, string time_slot_id  );
+int SQL_DeleteTime_Slot_Group_byGId( Statement *&state, string time_group_id );
+
+
 
 int SQL_AddTime_Group( Statement *&state, string time_group_name );
 int SQL_DeleteTime_Group( Statement *&state, string time_group_id );
@@ -179,6 +184,8 @@ json json_SQL_Return_inserted_dept_id( Statement *&state, ResultSet *&result );
 json json_SQL_Return_inserted_job_id( Statement *&state, ResultSet *&result );
 json json_SQL_Return_alarm_gid( Statement *&state, ResultSet *&result );
 json json_SQL_Return_inserted_map_id( Statement *&state, ResultSet *&result );
+json json_SQL_Return_time_gid( Statement *&state, ResultSet *&result );
+
 
 json json_SQL_GetGroup_Anchors( Statement *&state, ResultSet *&result );
 json json_SQL_GetMap_Groups( Statement *&state, ResultSet *&result );
@@ -219,6 +226,7 @@ string SQL_Get_indexOf_locus_index_by_min( string date_hour ) ;
 string SQL_Get_indexOf_locus_index_by_next_min( string rownum );
 
 
+void Combine_staff_info( json &tag_list, json one_tag );
 
 json Find_staff_byTag( string tag_id ) ;
 json Find_alarm_group_byStaff( json aStaff ) ;
@@ -234,7 +242,7 @@ json package2json( string coordinate_x, string coordinate_y, string map_id, stri
 
 
 
-class Alarm
+class RequestList
 {
 private:
 
@@ -245,7 +253,7 @@ public :
     static json alarm_status_list ;
     static json alarm_top50_list ;
 
-    json Call_Alarm_func( string func_name, json func_arg ) ;
+    json Call_RequestList_func( string func_name, json func_arg ) ;
 
 
     bool remove_from_invisible_list( string target_tag ) ;
@@ -259,3 +267,5 @@ public :
     static int bar;
 
 };
+
+
