@@ -690,6 +690,8 @@ json Call_SQL_func( string func_name, json func_arg )
             ret = json_SQL_GetMaps( state, result );
         else if ( func_name == "GetAnchorsInMap" )
             ret = json_SQL_GetAnchorsInMap( state, result, func_arg ) ;
+        else if ( func_name == "GetMainAnchorsInMap" )
+            ret = json_SQL_GetMainAnchorsInMap( state, result, func_arg ) ;
 
 
 
@@ -1670,9 +1672,22 @@ json json_SQL_GetAnchorsInMap( Statement *&state, ResultSet *&result, json func_
     foo["success"] = 0 ;
     json temp ;
     string target = func_arg["map_id"].get<std::string>() ;
-    string query = string("") + "select gf.group_id, gf.group_name, gf.main_anchor_id, R.anchor_id from ( select GA.group_id, GA.anchor_id from ( select mg.group_id " +
-                   " from map_groups mg where map_id = '" + target + "' ) R1 join group_anchors GA where R1.group_id = GA.group_id " +
-                   " )R join group_info gf where gf.group_id = R.group_id ;" ;
+//    string query = string("") + "select gf.group_id, gf.group_name, gf.main_anchor_id, R.anchor_id from ( " +
+//                   "   select GA.group_id, GA.anchor_id from ( " +
+//                   "       select mg.group_id " +
+//                   "       from map_groups mg where map_id = '" + target + "' " +
+//                   "   ) R1 join group_anchors GA where R1.group_id = GA.group_id " +
+//                   ")R join group_info gf where gf.group_id = R.group_id ;" ;
+
+    string query = string("") + "select RR.group_id, RR.group_name, RR.main_anchor_id, RR.anchor_id, ai.set_x, ai.set_y from ( " +
+                                "   select gf.group_id, gf.group_name, gf.main_anchor_id, R.anchor_id from ( " +
+                                "   	select GA.group_id, GA.anchor_id from ( " +
+                                "   		select mg.group_id from " +
+                                "           map_groups mg where map_id = '" + target + "' " +
+                                "       ) R1 join group_anchors GA where R1.group_id = GA.group_id " +
+                                "   )R join group_info gf where gf.group_id = R.group_id " +
+                                ")RR join anchor_info ai where RR.anchor_id = ai.anchor_id ;" ;
+
     try
     {
         result = state->executeQuery(query);
@@ -1683,12 +1698,60 @@ json json_SQL_GetAnchorsInMap( Statement *&state, ResultSet *&result, json func_
             string group_name       = result->getString("group_name");
             string main_anchor_id   = result->getString("main_anchor_id");
             string anchor_id        = result->getString("anchor_id");
+            string set_x            = result->getString("set_x");
+            string set_y            = result->getString("set_y");
 
             temp["group_id"]        = group_id;
             temp["group_name"]      = group_name;
             temp["main_anchor_id"]  = main_anchor_id;
             temp["anchor_id"]       = anchor_id;
+            temp["set_x"]           = set_x;
+            temp["set_y"]           = set_y;
 
+
+            foo["Values"].push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+    foo["success"] = 1 ;
+    return foo ;
+}
+
+
+json json_SQL_GetMainAnchorsInMap( Statement *&state, ResultSet *&result, json func_arg )
+{
+    json foo;
+    foo["success"] = 0 ;
+    json temp ;
+    string target = func_arg["map_id"].get<std::string>() ;
+    string query = string("") + "select an.group_id , an.group_name, an.main_anchor_id, ai.set_x, ai.set_y from (" +
+                   "   select mg.group_id , gf.group_name, gf.main_anchor_id from (" +
+                   "       select group_id from map_groups where map_id = '" + target + "' " +
+                   "   )mg join group_info gf where mg.group_id = gf.group_id " +
+                   ")an join anchor_info ai where an.main_anchor_id = ai.anchor_id ;" ;
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next())
+        {
+            // group_id, group_name, main_anchor_id, set_x, set_y
+            string group_id         = result->getString("group_id");
+            string group_name       = result->getString("group_name");
+            string main_anchor_id   = result->getString("main_anchor_id");
+            string set_x            = result->getString("set_x");
+            string set_y            = result->getString("set_y");
+
+            temp["group_id"]        = group_id;
+            temp["group_name"]      = group_name;
+            temp["main_anchor_id"]  = main_anchor_id;
+            temp["set_x"]           = set_x;
+            temp["set_y"]           = set_y;
 
             foo["Values"].push_back(temp);
             temp.clear();

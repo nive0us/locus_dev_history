@@ -154,6 +154,8 @@ json json_SQL_GetMaps( Statement *&state, ResultSet *&result );
 
 json json_SQL_GetOneStaffPhoto( Statement *&state, ResultSet *&result, json func_arg );
 json json_SQL_GetAnchorsInMap( Statement *&state, ResultSet *&result, json func_arg );
+json json_SQL_GetMainAnchorsInMap( Statement *&state, ResultSet *&result, json func_arg );
+
 
 
 json json_SQL_Get_One_Staff( Statement *&state, ResultSet *&result, json func_arg );

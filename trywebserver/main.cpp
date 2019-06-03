@@ -1797,7 +1797,7 @@ void Read_RF_setting()
 char* new_ip_addr = "192.168.1.202";
 char* new_mask_addr = "255.255.255.0";
 char* new_gw_addr = "192.168.1.254" ;
-char* ip_adr = "192.168.1.130";
+char* ip_adr = "192.168.1.93";
 
 
 int sockSrv;
