@@ -96,6 +96,22 @@ int SQL_EditUserType( Statement *&state, json func_arg ) ;
 int SQL_DeleteUserType( Statement *&state, string type ) ;
 
 
+int SQL_AddFence_point( Statement *&state, json func_arg ) ;
+int SQL_AddFence_info( Statement *&state, json func_arg ) ;
+int SQL_AddFence_group( Statement *&state, json func_arg ) ;
+json json_SQL_Return_inserted_fence_id( Statement *&state, ResultSet *&result ) ;
+int SQL_DeleteFence_Point( Statement *&state, string fence_id ) ;
+int SQL_DeleteFence_Info( Statement *&state, string fence_id ) ;
+int SQL_DeleteFence_Group( Statement *&state, string fence_id ) ;
+json json_SQL_GetFencesInMap( Statement *&state, ResultSet *&result, json func_arg );
+json json_SQL_GetFence_group( Statement *&state, ResultSet *&result, json func_arg );
+json json_SQL_GetFence_point( Statement *&state, ResultSet *&result, json func_arg );
+json json_SQL_GetFence_info( Statement *&state, ResultSet *&result, json func_arg );
+int SQL_EditFence_Info( Statement *&state, json func_arg );
+
+
+
+
 //** Time HEAD
 int SQL_AddTime_Slot( Statement *&state, string time_slot_name, string Mon_start, string Mon_end, string Tue_start, string Tue_end,
                       string Wed_start, string Wed_end, string Thu_start, string Thu_end, string Fir_start, string Fir_end,
@@ -228,7 +244,7 @@ string SQL_Get_indexOf_locus_index_by_min( string date_hour ) ;
 string SQL_Get_indexOf_locus_index_by_next_min( string rownum );
 
 
-void Combine_staff_info( json &tag_list, json one_tag );
+json Combine_staff_info( json tag_list, json one_tag );
 
 json Find_staff_byTag( string tag_id ) ;
 json Find_alarm_group_byStaff( json aStaff ) ;
@@ -250,6 +266,7 @@ private:
 
 
 public :
+    static json request_TagList ;
     static json visible_list ; // last next tag_list
     static json invisible_list ;
     static json alarm_status_list ;
@@ -260,6 +277,8 @@ public :
 
     bool remove_from_invisible_list( string target_tag ) ;
     bool search_visible_list( string target_tag ) ;
+    bool search_invisible_list( string target_tag ) ;
+
     bool remove_from_status_list( string target_tag ) ;
     json add_to_alarm_top50_list( json j_list, json input ) ;
     json combine_staff_info_to_alarm_list( json staff, json alarm ) ;

@@ -1,0 +1,261 @@
+2019/06/11/20:31:26
+net inferface
+search dev
+
+29
+key :using_SQL, f_value :1
+bind failed1:0
+1
+stream:{"Command_Type":["Write"],"Command_Name":["Launch"],"Value":"Stop"}
+get_arg from web :{"Command_Name":["Launch"],"Command_Type":["Write"],"Value":"Stop"}
+command_name:Launch
+>>>>>>>>>>>>>>>>>>>>>>>>GET Stop
+stream:{"Command_Type":["Write"],"Command_Name":["Launch"],"Value":"Start"}
+get_arg from web :{"Command_Name":["Launch"],"Command_Type":["Write"],"Value":"Start"}
+command_name:Launch
+>>>>>>>>>>>>>>>>>>>>>>>>GET Launch
+SQL_FLAG
+sql main an :65503,206,123
+sql main an :65512,729,125
+sql main an :65514,446,41
+12
+sql an :9998,555,666
+sql an :9999,555,666
+sql an :65504,348,5
+sql an :65505,161,5
+sql an :65506,5,5
+sql an :65507,5,251
+sql an :65508,901,5
+sql an :65509,877,261
+sql an :65511,573,5
+sql an :65513,347,261
+sql an :65515,574,261
+sql an :65535,131,250
+16
+main an id:65508
+main an id:65509
+main an id:65515
+main an id:65511
+main an id:65515
+main an id:65511
+main an id:65504
+main an id:65513
+main an id:65504
+main an id:65513
+main an id:65505
+main an id:65535
+main an id:65505
+main an id:65535
+main an id:65506
+main an id:65507
+65503,618,369
+65512,2187,375
+65514,1338,123
+====== SQL Mode ======
+C++ dlopen
+Opening *.so...
+Loading symbol caculate...
+SQL_FLAG
+sql main an :65503,206,123
+sql main an :65512,729,125
+sql main an :65514,446,41
+12
+sql an :9998,555,666
+sql an :9999,555,666
+sql an :65504,348,5
+sql an :65505,161,5
+sql an :65506,5,5
+sql an :65507,5,251
+sql an :65508,901,5
+sql an :65509,877,261
+sql an :65511,573,5
+sql an :65513,347,261
+sql an :65515,574,261
+sql an :65535,131,250
+16
+main an id:65508
+main an id:65509
+main an id:65515
+main an id:65511
+main an id:65515
+main an id:65511
+main an id:65504
+main an id:65513
+main an id:65504
+main an id:65513
+main an id:65505
+main an id:65535
+main an id:65505
+main an id:65535
+main an id:65506
+main an id:65507
+65503,618,369
+65512,2187,375
+65514,1338,123
+len_main:3
+65503
+65512
+65514
+len_child:16
+65508
+65509
+65515
+65511
+65515
+65511
+65504
+65513
+65504
+65513
+65505
+65535
+65505
+65535
+65506
+65507
+init_anchor_success
+location_init
+2019/06/11/20:46:29
+net inferface
+search dev
+
+29
+bind failed1:0
+key :using_SQL, f_value :1
+1
+stream:{"Command_Type":["Write"],"Command_Name":["Launch"],"Value":"Stop"}
+get_arg from web :{"Command_Name":["Launch"],"Command_Type":["Write"],"Value":"Stop"}
+command_name:Launch
+>>>>>>>>>>>>>>>>>>>>>>>>GET Stop
+stream:{"Command_Type":["Write"],"Command_Name":["Launch"],"Value":"Start"}
+get_arg from web :{"Command_Name":["Launch"],"Command_Type":["Write"],"Value":"Start"}
+command_name:Launch
+>>>>>>>>>>>>>>>>>>>>>>>>GET Launch
+SQL_FLAG
+sql main an :65503,206,123
+sql main an :65512,729,125
+sql main an :65514,446,41
+12
+sql an :9998,555,666
+sql an :9999,555,666
+sql an :65504,348,5
+sql an :65505,161,5
+sql an :65506,5,5
+sql an :65507,5,251
+sql an :65508,901,5
+sql an :65509,877,261
+sql an :65511,573,5
+sql an :65513,347,261
+sql an :65515,574,261
+sql an :65535,131,250
+16
+main an id:65508
+main an id:65509
+main an id:65515
+main an id:65511
+main an id:65515
+main an id:65511
+main an id:65504
+main an id:65513
+main an id:65504
+main an id:65513
+main an id:65505
+main an id:65535
+main an id:65505
+main an id:65535
+main an id:65506
+main an id:65507
+65503,618,369
+65512,2187,375
+65514,1338,123
+====== SQL Mode ======
+C++ dlopen
+Opening *.so...
+Loading symbol caculate...
+SQL_FLAG
+sql main an :65503,206,123
+sql main an :65512,729,125
+sql main an :65514,446,41
+12
+sql an :9998,555,666
+sql an :9999,555,666
+sql an :65504,348,5
+sql an :65505,161,5
+sql an :65506,5,5
+sql an :65507,5,251
+sql an :65508,901,5
+sql an :65509,877,261
+sql an :65511,573,5
+sql an :65513,347,261
+sql an :65515,574,261
+sql an :65535,131,250
+16
+main an id:65508
+main an id:65509
+main an id:65515
+main an id:65511
+main an id:65515
+main an id:65511
+main an id:65504
+main an id:65513
+main an id:65504
+main an id:65513
+main an id:65505
+main an id:65535
+main an id:65505
+main an id:65535
+main an id:65506
+main an id:65507
+65503,618,369
+65512,2187,375
+65514,1338,123
+len_main:3
+65503
+65512
+65514
+len_child:16
+65508
+65509
+65515
+65511
+65515
+65511
+65504
+65513
+65504
+65513
+65505
+65535
+65505
+65535
+65506
+65507
+init_anchor_success
+location_init
+GetLocus_combine_hour
+in :2019-03-29 23:00:32
+buf :2019-03-29 23
+in :2019-03-29 00:30:32
+buf :2019-03-29 00
+in :2019-03-29 23:00:32
+buf :2019-03-29 23
+
+date :2019-03-29
+time :00:30:32
+time2hour :2019-03-29 00
+
+date :2019-03-29
+time :23:00:32
+time2hour :2019-03-29 23
+
+query :select * from locus_index_hour where id = 1+1 ;
+select a.id ,coordinate_x, coordinate_y, map_id, time from ( select * from locus_combine where id >= (select index_id from locus_index_hour where datetime = '2019-03-29 00') and id <= '7839584' )a join map_groups b on b.group_id = a.group_id where tag_id = '000000000000000C' ;
+start_hour :2019-03-29 00
+shift_hour2 :2019-03-29 01
+in shift 2019-03-29 01
+
+
+
+terminate called after throwing an instance of 'nlohmann::detail::type_error'
+  what():  [json.exception.type_error.316] invalid UTF-8 byte at index 18: 0xD4
+已經終止 (core dumped)

@@ -60,7 +60,7 @@ string sql_create_tag   = sql_create_table + sql_create_tag1 + sql_create_tag2 ;
 
 string sql_create_locus_combine1    = "locus_combine ( id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), tag_id VARCHAR(16), " ;
 string sql_create_locus_combine2    = "coordinate_x INT UNSIGNED, coordinate_y INT UNSIGNED, group_id SMALLINT UNSIGNED, `time`datetime(2) )";
-string sql_create_locus_combine     = sql_create_table + sql_create_locus1 + sql_create_locus2 ; // date and time combined store.
+string sql_create_locus_combine     = sql_create_table + sql_create_locus_combine1 + sql_create_locus_combine2 ; // date and time combined store.
 
 
 
@@ -158,12 +158,20 @@ string sql_create_alarm_group_info   = sql_create_table + sql_create_alarm_group
 
 // ******************** fence *****************
 string sql_create_fence_point1  = "fence_point (  id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
-string sql_create_fence_point2  = " point_x INT UNSIGNED , point_y INT UNSIGNED , map_id INT UNSIGNED , fence_id INT UNSIGNED )";
+string sql_create_fence_point2  = " point_x INT UNSIGNED , point_y INT UNSIGNED, fence_id INT UNSIGNED, point_order TINYINT )";
 string sql_create_fence_point   = sql_create_table + sql_create_fence_point1 + sql_create_fence_point2 ;
 
-string sql_create_fence_info1  = "fence_info (  id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
-string sql_create_fence_info2  = " fence_name VARCHAR(10) )";
+string sql_create_fence_info1  = "fence_info (  fence_id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (fence_id), " ;
+string sql_create_fence_info2  = " fence_name VARCHAR(10), map_id INT UNSIGNED, list_type VARCHAR(10) )";
 string sql_create_fence_info   = sql_create_table + sql_create_fence_info1 + sql_create_fence_info2 ;
+
+string sql_create_fence_group1  = "fence_group (  id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
+string sql_create_fence_group2  = " fence_id INT UNSIGNED, group_id INT UNSIGNED )";
+string sql_create_fence_group   = sql_create_table + sql_create_fence_group1 + sql_create_fence_group2 ;
+
+string sql_create_restricted_list1  = "restricted_list (  id INT UNSIGNED NOT NULL AUTO_INCREMENT, PRIMARY KEY (id), " ;
+string sql_create_restricted_list2  = " fence_id INT UNSIGNED, staff_number VARCHAR(40) )";
+string sql_create_restricted_list   = sql_create_table + sql_create_restricted_list1 + sql_create_restricted_list2 ;
 // ******************** fence  END *****************
 
 int list_size = 5 ;
@@ -209,6 +217,11 @@ bool Construct_sql_cmd()
         SQL_ExecuteUpdate( sql_create_alarm_group_info ) ;
         SQL_ExecuteUpdate( sql_create_alarm_info ) ;
 //        SQL_ExecuteUpdate( sql_create_alarm_group ) ;
+
+        SQL_ExecuteUpdate( sql_create_fence_point ) ;
+        SQL_ExecuteUpdate( sql_create_fence_info ) ;
+        SQL_ExecuteUpdate( sql_create_restricted_list ) ;
+        SQL_ExecuteUpdate( sql_create_fence_group ) ;
 
 
         SQL_Close();
@@ -473,6 +486,22 @@ json Call_SQL_func( string func_name, json func_arg )
 //                ret = json_SQL_Return_inserted_job_id( state, result );
             }
 
+            else if ( func_name == "AddFencePoint" )
+            {
+                success += SQL_AddFence_point( state, func_arg[i] ) ;
+//                ret = json_SQL_Return_inserted_job_id( state, result );
+            }
+            else if ( func_name == "AddFenceInfo" )
+            {
+                success += SQL_AddFence_info( state, func_arg[i] ) ;
+                ret = json_SQL_Return_inserted_fence_id( state, result );
+            }
+            else if ( func_name == "AddFenceGroup" )
+            {
+                success += SQL_AddFence_group( state, func_arg[i] ) ;
+//                ret = json_SQL_Return_inserted_job_id( state, result );
+            }
+
 
             else if ( func_name == "DeleteAnchor_Info" )
                 success += SQL_DeleteAnchor_Info( state, func_arg[i]["anchor_id"] );
@@ -565,6 +594,22 @@ json Call_SQL_func( string func_name, json func_arg )
                 do_update_time_list = true ;
             }
 
+            else if ( func_name == "DeleteFence_info" )
+            {
+                success += SQL_DeleteFence_Info( state, func_arg[i]["fence_id"].get<std::string>() ) ;
+            }
+
+            else if ( func_name == "DeleteFence_group_by_fid" )
+            {
+                success += SQL_DeleteFence_Group( state, func_arg[i]["fence_id"].get<std::string>() ) ;
+            }
+
+            else if ( func_name == "DeleteFence_point_by_fid" )
+            {
+                success += SQL_DeleteFence_Point( state, func_arg[i]["fence_id"].get<std::string>() ) ;
+            }
+
+
             else if ( func_name == "multiEdit_StaffDepartment")
                 success += SQL_multiEdit_StaffDepartment( state, func_arg[i]["number"].get<std::string>(), func_arg[i]["department"].get<std::string>() ) ;
 
@@ -605,6 +650,12 @@ json Call_SQL_func( string func_name, json func_arg )
         {
             success += SQL_EditGroup_Info( state, func_arg ) ;
         }
+
+        else if ( func_name == "EditFence_Info" )
+        {
+            success += SQL_EditFence_Info( state, func_arg ) ;
+        }
+
 
 //        else if ( func_name == "EditGroup_Anchors" )
 //        {
@@ -692,6 +743,17 @@ json Call_SQL_func( string func_name, json func_arg )
             ret = json_SQL_GetAnchorsInMap( state, result, func_arg ) ;
         else if ( func_name == "GetMainAnchorsInMap" )
             ret = json_SQL_GetMainAnchorsInMap( state, result, func_arg ) ;
+
+        else if ( func_name == "GetFencesInMap" )
+            ret = json_SQL_GetFencesInMap( state, result, func_arg ) ;
+        else if ( func_name == "GetFence_group" )
+            ret = json_SQL_GetFence_group( state, result, func_arg ) ;
+        else if ( func_name == "GetFence_point" )
+            ret = json_SQL_GetFence_point( state, result, func_arg ) ;
+        else if ( func_name == "GetFence_info" )
+            ret = json_SQL_GetFence_info( state, result, func_arg ) ;
+
+
 
 
 
@@ -1095,6 +1157,51 @@ int SQL_AddUserType( Statement *&state, json func_arg )
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
 
+int SQL_AddFence_point( Statement *&state, json func_arg )
+{
+
+    string fence_point_x    = func_arg["point_x"].get<std::string>() ;
+    string fence_point_y    = func_arg["point_y"].get<std::string>() ;
+
+    string fence_id         = func_arg["fence_id"].get<std::string>() ;
+    string point_order      = func_arg["point_order"].get<std::string>() ;
+
+//    string query0 = "SET @last_id_in_table = (SELECT AUTO_INCREMENT  FROM information_schema.tables WHERE table_name = 'user_type' AND table_schema = DATABASE() );" ;
+//    SQL_ExecuteUpdate_single( state, query0 ) ;
+    string query = string("") + "INSERT INTO fence_point VALUES ( '0','" + fence_point_x + "','" + fence_point_y  + "','" + fence_id  + "','" + point_order  + "' );" ;
+
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+
+int SQL_AddFence_info( Statement *&state, json func_arg )
+{
+
+    //string fence_id     = func_arg["fence_id"].get<std::string>() ;
+
+    string fence_name   = func_arg["fence_name"].get<std::string>() ;
+    string map_id       = func_arg["map_id"].get<std::string>() ;
+    string list_type    = func_arg["list_type"].get<std::string>() ;
+
+//    string query0 = "SET @last_id_in_table = (SELECT AUTO_INCREMENT  FROM information_schema.tables WHERE table_name = 'user_type' AND table_schema = DATABASE() );" ;
+//    SQL_ExecuteUpdate_single( state, query0 ) ;
+    string query = string("") + "INSERT INTO fence_info VALUES ( '0','" + fence_name  + "','" + map_id  + "','" + list_type  + "' );" ;
+
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+int SQL_AddFence_group( Statement *&state, json func_arg )
+{
+
+    string fence_id     = func_arg["fence_id"].get<std::string>() ;
+    string group_id     = func_arg["group_id"].get<std::string>() ;
+
+//    string query0 = "SET @last_id_in_table = (SELECT AUTO_INCREMENT  FROM information_schema.tables WHERE table_name = 'user_type' AND table_schema = DATABASE() );" ;
+//    SQL_ExecuteUpdate_single( state, query0 ) ;
+    string query = string("") + "INSERT INTO fence_group VALUES ( '0','" + fence_id + "','" + group_id  + "' );" ;
+
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
 
 int SQL_EditStaff( Statement *&state, json func_arg )
 {
@@ -1197,6 +1304,21 @@ int SQL_EditGroup_Info( Statement *&state, json func_arg )
 
     string query = string("") + "UPDATE `PositioningSystem`.`group_info` SET `main_anchor_id`='" + main_anchor_id + "', group_name = '" + group_name +
                    "', mode = '" + mode + "', mode_value = '" + mode_value + "', fence = '" + fence + "' WHERE `group_id`='" + group_id + "';" ;
+
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+int SQL_EditFence_Info( Statement *&state, json func_arg )
+{
+    // group_id, group_name, main_anchor_id, mode, mode_value, fence
+    string fence_id     = func_arg["fence_id"].get<std::string>() ;
+    string fence_name   = func_arg["fence_name"].get<std::string>() ;
+    string map_id       = func_arg["map_id"].get<std::string>() ;
+    string list_type    = func_arg["list_type"].get<std::string>() ;
+
+    string query = string("") + "UPDATE `PositioningSystem`.`fence_info` SET `fence_name`='" + fence_name + "', map_id = '" + map_id +
+                    "', list_type = '" + list_type + "' WHERE `fence_id`='" + fence_id + "';" ;
 
     SQL_OFF_SafeUpdate(state);
     return SQL_ExecuteUpdate_single( state, query ) ;
@@ -1397,6 +1519,27 @@ int SQL_DeleteTime_Slot_Group_byDuoId( Statement *&state, string time_group_id, 
 int SQL_DeleteTime_Group( Statement *&state, string time_group_id )
 {
     string query = string("") + "delete from time_group_info where id = \"" + time_group_id + "\";";
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+int SQL_DeleteFence_Point( Statement *&state, string fence_id )
+{
+    string query = string("") + "delete from fence_point where fence_id = \"" + fence_id + "\";";
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+int SQL_DeleteFence_Info( Statement *&state, string fence_id )
+{
+    string query = string("") + "delete from fence_info where fence_id = \"" + fence_id + "\";";
+    SQL_OFF_SafeUpdate(state);
+    return SQL_ExecuteUpdate_single( state, query ) ;
+}
+
+int SQL_DeleteFence_Group( Statement *&state, string fence_id )
+{
+    string query = string("") + "delete from fence_group where fence_id = \"" + fence_id + "\";";
     SQL_OFF_SafeUpdate(state);
     return SQL_ExecuteUpdate_single( state, query ) ;
 }
@@ -1680,13 +1823,13 @@ json json_SQL_GetAnchorsInMap( Statement *&state, ResultSet *&result, json func_
 //                   ")R join group_info gf where gf.group_id = R.group_id ;" ;
 
     string query = string("") + "select RR.group_id, RR.group_name, RR.main_anchor_id, RR.anchor_id, ai.set_x, ai.set_y from ( " +
-                                "   select gf.group_id, gf.group_name, gf.main_anchor_id, R.anchor_id from ( " +
-                                "   	select GA.group_id, GA.anchor_id from ( " +
-                                "   		select mg.group_id from " +
-                                "           map_groups mg where map_id = '" + target + "' " +
-                                "       ) R1 join group_anchors GA where R1.group_id = GA.group_id " +
-                                "   )R join group_info gf where gf.group_id = R.group_id " +
-                                ")RR join anchor_info ai where RR.anchor_id = ai.anchor_id ;" ;
+                   "   select gf.group_id, gf.group_name, gf.main_anchor_id, R.anchor_id from ( " +
+                   "   	select GA.group_id, GA.anchor_id from ( " +
+                   "   		select mg.group_id from " +
+                   "           map_groups mg where map_id = '" + target + "' " +
+                   "       ) R1 join group_anchors GA where R1.group_id = GA.group_id " +
+                   "   )R join group_info gf where gf.group_id = R.group_id " +
+                   ")RR join anchor_info ai where RR.anchor_id = ai.anchor_id ;" ;
 
     try
     {
@@ -2113,9 +2256,156 @@ json json_SQL_GetStaffs( Statement *&state, ResultSet *&result )
 }
 
 
+json json_SQL_GetFencesInMap( Statement *&state, ResultSet *&result, json func_arg )
+{
+    json foo;
+    foo["success"] = 0 ;
+    json temp ;
+    string target = func_arg["map_id"].get<std::string>() ;
+    string query = string("") + "select * from fence_info where map_id = '" + target + "' ;";
+
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next())
+        {
+            // group_id, group_name, main_anchor_id, set_x, set_y
+            string fence_id     = result->getString("fence_id");
+            string fence_name   = result->getString("fence_name");
+            string map_id       = result->getString("map_id");
+            string list_type    = result->getString("list_type");
 
 
+            temp["fence_id"]    = fence_id;
+            temp["fence_name"]  = fence_name;
+            temp["map_id"]      = map_id;
+            temp["list_type"]   = list_type;
 
+            foo["Values"].push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+    foo["success"] = 1 ;
+    return foo ;
+}
+
+json json_SQL_GetFence_group( Statement *&state, ResultSet *&result, json func_arg )
+{
+    json foo;
+    foo["success"] = 0 ;
+    json temp ;
+    string target = func_arg["fence_id"].get<std::string>() ;
+    string query = string("") + "select * from fence_group where fence_id = '" + target + "' ;";
+
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next())
+        {
+            // group_id, group_name, main_anchor_id, set_x, set_y
+            string fence_id = result->getString("fence_id");
+            string group_id = result->getString("group_id");
+
+            temp["fence_id"]    = fence_id;
+            temp["group_id"]    = group_id;
+
+            foo["Values"].push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+    foo["success"] = 1 ;
+    return foo ;
+}
+
+json json_SQL_GetFence_point( Statement *&state, ResultSet *&result, json func_arg )
+{
+    json foo;
+    foo["success"] = 0 ;
+    json temp ;
+    string target = func_arg["fence_id"].get<std::string>() ;
+    string query = string("") + "select * from fence_point where fence_id = '" + target + "' ;";
+
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next())
+        {
+            // point_x INT UNSIGNED , point_y INT UNSIGNED, fence_id INT UNSIGNED, point_order TINYINT )
+
+            string point_x      = result->getString("point_x");
+            string point_y      = result->getString("point_y");
+            string point_order  = result->getString("point_order");
+            string fence_id     = result->getString("fence_id");
+
+            temp["point_x"]     = point_x;
+            temp["point_y"]     = point_y;
+            temp["point_order"] = point_order;
+            temp["fence_id"]    = fence_id;
+
+            foo["Values"].push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+    foo["success"] = 1 ;
+    return foo ;
+}
+
+json json_SQL_GetFence_info( Statement *&state, ResultSet *&result, json func_arg )
+{
+    json foo;
+    foo["success"] = 0 ;
+    json temp ;
+    string target = func_arg["fence_id"].get<std::string>() ;
+    string query = string("") + "select * from fence_info where fence_id = '" + target + "' ;";
+
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next())
+        {
+            // group_id, group_name, main_anchor_id, set_x, set_y
+            string fence_id     = result->getString("fence_id");
+            string fence_name   = result->getString("fence_name");
+            string map_id       = result->getString("map_id");
+            string list_type    = result->getString("list_type");
+
+
+            temp["fence_id"]    = fence_id;
+            temp["fence_name"]  = fence_name;
+            temp["map_id"]      = map_id;
+            temp["list_type"]   = list_type;
+
+            foo["Values"].push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+    foo["success"] = 1 ;
+    return foo ;
+}
 
 string Travel_tree( json j_tree, string target, json &ret_json ) // traveling by name
 {
@@ -2819,6 +3109,37 @@ json json_SQL_Return_inserted_job_id( Statement *&state, ResultSet *&result )
     return foo ;
 }
 
+json json_SQL_Return_inserted_fence_id( Statement *&state, ResultSet *&result )
+{
+    json tree ;
+
+    json foo ;
+    foo["success"] = 0 ;
+    json temp ;
+    string query = "select fence_id from fence_info order by fence_id desc limit 0,1;";
+    try
+    {
+        result = state->executeQuery(query);
+        while (result->next())
+        {
+            string fence_id     = result->getString("fence_id");
+            temp["fence_id"]    = fence_id;
+            tree = temp ;
+//            tree.push_back(temp);
+            temp.clear();
+        }
+    }
+    catch(sql::SQLException& e)
+    {
+        std::cout << e.what() << std::endl;
+        return foo ;
+    }
+
+    foo["Values"] = tree ;
+    foo["success"] = 1 ;
+    return foo ;
+}
+
 json json_SQL_Return_alarm_gid( Statement *&state, ResultSet *&result )
 {
     json tree ;
@@ -2989,28 +3310,29 @@ json json_SQL_GetTags_info( Statement *&state, ResultSet *&result )
     return foo ;
 }
 
-void Combine_staff_info( json &tag_list, json one_tag )
+json Combine_staff_info( json tag_list, json one_tag )
 {
-    json ret_j ;
+    json ret_j = tag_list;
 
     if ( !one_tag.empty() )
     {
         for ( int j = 0 ; j < j_staff_list.size() ; j++ )
         {
-            if ( one_tag["tag_id"] == j_staff_list[j]["tag_id"] )
+            if ( one_tag["tag_id"].get<std::string>() == j_staff_list[j]["tag_id"].get<std::string>() )
             {
                 json a;
                 a = one_tag ;
                 a["number"] = j_staff_list[j]["number"] ;
                 a["Name"]   = j_staff_list[j]["Name"] ;
-                tag_list.push_back( a ) ;
+                ret_j.push_back( a ) ;
                 break;
             } // if
 
         } // for loop j_staff_list
 
-        tag_list.push_back( one_tag ) ;
+        ret_j.push_back( one_tag ) ;
     } // if one_tag != empty
+    return ret_j;
 
     // return ret_j ;
 }
@@ -3065,29 +3387,100 @@ json Find_time_group_byTime_gid( string time_group_id )
 }
 
 
-int Clock_to_int_byDate( string str_with_date )
+int Clock_to_int_byFullDate( string str_with_date )
 {
     int hh = 0, mm = 0, ss = 0 ;
+    int Y = 0, M = 0, D = 0 ;
     string tmp = str_with_date ;
     // 2019/12/13/18:30:50:54 -> 2019-12-13/18:30:50:54
     for ( int i = 0 ; i <2 ; i++ )
         tmp = tmp.replace( tmp.find( "/"),1,"-" );
 
-//    cout << tmp << endl ;
+    cout << tmp << endl ;
     int current = 0;
-    int pos = tmp.find_first_of("/", current)+1;
 
-    int pos_1st = tmp.find_first_of(":", pos) +1;
+    int y_pos = tmp.find_first_of("-", current)+1;
+    int m_pos = tmp.find_first_of("-", y_pos)+1;
+    int d_pos = tmp.find_first_of("/", m_pos)+1;
+
+    int pos_1st = tmp.find_first_of(":", d_pos) +1;
     int pos_2nd = tmp.find_first_of(":", pos_1st) +1;
     int pos_3rd = tmp.find_first_of(":", pos_2nd) +1;
 //    cout << pos_1st << " " << pos_2nd << " " << pos_3rd << endl ;
 
-    hh = atoi( tmp.substr(pos, pos_1st - pos).c_str() );
+
+    Y = atoi( tmp.substr(current, y_pos - current).c_str() );
+    M = atoi( tmp.substr(y_pos, m_pos - y_pos).c_str() );
+    D = atoi( tmp.substr(m_pos, d_pos - m_pos).c_str() );
+
+    hh = atoi( tmp.substr(d_pos, pos_1st - d_pos).c_str() );
     mm = atoi( tmp.substr(pos_1st, pos_2nd - pos_1st).c_str() );
     ss = atoi( tmp.substr(pos_2nd, pos_3rd - pos_2nd).c_str() );
-//    cout << hh << " " << mm << " " << ss << endl ;
+    cout << hh << " " << mm << " " << ss << endl ;
+
+    return Y*60*60*24*31*12 + M*60*60*24*31 + D*60*60*24 + hh*60*60 + mm*60 + ss ;
+
+}
+
+int Clock_to_int_bySQLDate( string str_with_date ) // return sql date format : hh mm ss to int.
+{
+    int hh = 0, mm = 0, ss = 0 ;
+    int Y = 0, M = 0, D = 0 ;
+    string tmp = str_with_date ;
+    // 2019-12-13 18:30:50:54.82
+
+    cout << tmp << endl ;
+    int current = 0;
+    int y_pos = tmp.find_first_of("-", current)+1;
+    int m_pos = tmp.find_first_of("-", y_pos)+1;
+    int d_pos = tmp.find_first_of(" ", m_pos)+1;
+
+    int pos_1st = tmp.find_first_of(":", d_pos) +1;
+    int pos_2nd = tmp.find_first_of(":", pos_1st) +1;
+    int pos_3rd = tmp.find_first_of(".", pos_2nd) +1;
+//    cout << pos_1st << " " << pos_2nd << " " << pos_3rd << endl ;
+    Y = atoi( tmp.substr(current, y_pos - current).c_str() );
+    M = atoi( tmp.substr(y_pos, m_pos - y_pos).c_str() );
+    D = atoi( tmp.substr(m_pos, d_pos - m_pos).c_str() );
+
+    hh = atoi( tmp.substr(d_pos, pos_1st - d_pos).c_str() );
+    mm = atoi( tmp.substr(pos_1st, pos_2nd - pos_1st).c_str() );
+    ss = atoi( tmp.substr(pos_2nd, pos_3rd - pos_2nd).c_str() );
+    cout << Y << " " << M << " " << D << endl ;
+    cout << hh << " " << mm << " " << ss << endl ;
 
     return hh*3600 + mm*60 + ss ;
+
+}
+
+int Clock_to_int_byFullSQLDate( string str_with_date )
+{
+    int hh = 0, mm = 0, ss = 0 ;
+    int Y = 0, M = 0, D = 0 ;
+    string tmp = str_with_date ;
+    // 2019-12-13 18:30:50:54.82
+
+    cout << tmp << endl ;
+    int current = 0;
+    int y_pos = tmp.find_first_of("-", current)+1;
+    int m_pos = tmp.find_first_of("-", y_pos)+1;
+    int d_pos = tmp.find_first_of(" ", m_pos)+1;
+
+    int pos_1st = tmp.find_first_of(":", d_pos) +1;
+    int pos_2nd = tmp.find_first_of(":", pos_1st) +1;
+    int pos_3rd = tmp.find_first_of(".", pos_2nd) +1;
+//    cout << pos_1st << " " << pos_2nd << " " << pos_3rd << endl ;
+    Y = atoi( tmp.substr(current, y_pos - current).c_str() );
+    M = atoi( tmp.substr(y_pos, m_pos - y_pos).c_str() );
+    D = atoi( tmp.substr(m_pos, d_pos - m_pos).c_str() );
+
+    hh = atoi( tmp.substr(d_pos, pos_1st - d_pos).c_str() );
+    mm = atoi( tmp.substr(pos_1st, pos_2nd - pos_1st).c_str() );
+    ss = atoi( tmp.substr(pos_2nd, pos_3rd - pos_2nd).c_str() );
+    cout << Y << " " << M << " " << D << endl ;
+    cout << hh << " " << mm << " " << ss << endl ;
+
+    return Y*60*60*24*31*12 + M*60*60*24*31 + D*60*60*24 + hh*60*60 + mm*60 + ss ;
 
 }
 
@@ -3147,7 +3540,7 @@ bool Walk_single_time_group_byWeekDay( json target_time_slot, int WeekDay, strin
 
         db_clock_start = Clock_to_int( _start ) ;
         db_clock_end = Clock_to_int( _end ) ;
-        tag_clock = Clock_to_int_byDate( tag_time ) ;
+        tag_clock = Clock_to_int_bySQLDate( tag_time ) ;
 
 //        cout << "start int :" << db_clock_start << endl ;
 //        cout << "end int :" << db_clock_end << endl ;
@@ -4517,7 +4910,7 @@ int SQL_EventType( Statement *&state, json func_arg )
 }
 
 
-
+json RequestList::request_TagList ;
 json RequestList::visible_list ; // last next tag_list
 json RequestList::invisible_list ;
 json RequestList::alarm_status_list ; // allow delete from web UI
@@ -4569,19 +4962,42 @@ bool RequestList::search_visible_list( string target_tag )
     return false ;
 }
 
+bool RequestList::search_invisible_list( string target_tag )
+{
+    for ( int i = 0 ; i < invisible_list.size() ; i++ )
+    {
+        if ( invisible_list[i]["tag_id"].get<std::string>() == target_tag )
+        {
+            return true ;
+        }
+    }
+    return false ;
+}
+
 
 json RequestList::add_to_alarm_top50_list( json j_list, json input )
 {
-    if ( 50 == j_list.size() )
+    json j_ret ;
+    if ( 10 <= j_list.size() )
     {
 ////        j_list[0].erase("tag_id") ;
 ////        j_list[0].erase("tag_time") ;
 //        j_list[0].clear();
-        j_list.erase(0) ;
+//        j_list.erase(0) ;
+        for ( int i = 1 ; i < 10 ; i++ )
+        {
+            j_ret.push_back(j_list[i]);
+        }
+        //j_ret.push_back(input);
     } // if
+    else
+    {
+        j_ret = j_list ;
+        //j_ret.push_back(input) ;
+    }
+    j_ret.push_back(input) ;
 
-    j_list.push_back(input) ;
-    return j_list ;
+    return j_ret ;
 }
 
 json RequestList::combine_staff_info_to_alarm_list( json staff, json alarm )
@@ -4622,6 +5038,9 @@ json RequestList::Call_RequestList_func( string func_name, json func_arg )
     {
         SQL_Open_single( con, state, result ) ;
 
+        if ( func_name == "GetTagList")
+            ret = request_TagList ;
+
 
         if ( func_name == "EditInvisibleList" )
         {
@@ -4652,9 +5071,17 @@ json RequestList::Call_RequestList_func( string func_name, json func_arg )
         return ret ;
 
     }
+    catch(json::parse_error)
+    {
+        cout << "Call_RequestList_func:parse_error" << endl ;
+    }
+    catch(json::type_error)
+    {
+        cout << "Call_RequestList_func:type_error" << endl ;
+    }
     catch ( exception &e )
     {
-        cout << "json parse error from Call_Alarm_func" << endl;
+        cout << "json parse error from Call_RequestList_func" << endl;
         cout << e.what() << endl ;
         //SQL_Close();
         SQL_Close_single( con, state, result );
