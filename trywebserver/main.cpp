@@ -2901,79 +2901,79 @@ void Location_Point_display(Tag_record* Tag_record_info,unsigned int coordinate_
         } // for int j = 0 ;
         // TAIL: update invisible & visible List *****************************************/
 
-//        try
-//        {
-//            // HEAD: update invisible & visible List ***********
-//            // cout << "j_vis_size :" << func_alarm.visible_list.size() << endl ;
-//            //*
-//            for ( int j = 0 ; j < func_alarm.visible_list.size() ; j++ )
-//            {
-//                //            json walk = func_alarm.visible_list[j] ;
-//
-//                //            bool in_realtime_list = false ;
-//
-//                for ( int k = 0 ; k < (unsigned)point_count; k++ )
-//                {
-//                    long temp_x = (long)(Tag_Map_point[k].point.x / temp_scale);
-//                    long temp_y = (long)(Tag_Map_point[k].point.y / temp_scale);
-//                    string temp_id = Tag_Map_point[k].Tag_Map_string ;
-//                    string time = Tag_record_info[k].Tag_info_record[Tag_record_info[k].Info_count - 1].System_Time ;
-//                    string temp_date_time = Trans2Standard(time); // Transfer time to standard format.
-//
-//                    //                 cout << walk["tag_id"].get<std::string>() << endl ;
-//
-//
-//                    if ( func_alarm.visible_list[j]["tag_id"].get<std::string>() == temp_id )   // refresh visible_list's time
-//                    {
-//                        if ( temp_id == "0000000000000058")
-//                        {
-//                            cout << "in_realtime_list check" << endl ;
-//                            cout << "time :" << temp_date_time << endl ;
-//                        }
-//
-//                        func_alarm.visible_list[j]["tag_time"] = temp_date_time ;
-//                        //                    in_realtime_list = true ;
-//                    }
-//
-//                    // if found the realtime_tag in invisible_list , delete that record.
-//                    //                func_alarm.remove_from_invisible_list( temp_id ) ;
-//                } // for point_count
-//
-//                string walk_id      = func_alarm.visible_list[j]["tag_id"].get<std::string>() ;
-//                string walk_time    = func_alarm.visible_list[j]["tag_time"].get<std::string>() ;
-//
-//                string custom_alarm_value = Get_alarm_value_byTag_n_alarm_name( walk_id, "hidden" ) ; // hidden's time offset
-//                if ( walk_id == "0000000000000058")
-//                    cout << "custom value :" << custom_alarm_value << endl ;
-//                if ( custom_alarm_value != "" && is_time_late_now( walk_time, custom_alarm_value ) ) // if visible + offset_time < now , add to invisible
-//                {
-//                    string event_type   = "" ;
-//                    Match_AlarmTime_Cache( walk_id, walk_time, "hidden", event_type ) ; // Determining what event status type( ex. Disable, start , Occurring, offline.... )
-//
-//                    if ( !func_alarm.search_invisible_list(walk_id) ) // When first time invisible, must to write SQL.
+        try
+        {
+            // HEAD: update invisible & visible List ***********
+            // cout << "j_vis_size :" << func_alarm.visible_list.size() << endl ;
+            //*
+            for ( int j = 0 ; j < func_alarm.visible_list.size() ; j++ )
+            {
+                //            json walk = func_alarm.visible_list[j] ;
+
+                //            bool in_realtime_list = false ;
+
+                for ( int k = 0 ; k < (unsigned)point_count; k++ )
+                {
+                    long temp_x = (long)(Tag_Map_point[k].point.x / temp_scale);
+                    long temp_y = (long)(Tag_Map_point[k].point.y / temp_scale);
+                    string temp_id = Tag_Map_point[k].Tag_Map_string ;
+                    string time = Tag_record_info[k].Tag_info_record[Tag_record_info[k].Info_count - 1].System_Time ;
+                    string temp_date_time = Trans2Standard(time); // Transfer time to standard format.
+
+                    //                 cout << walk["tag_id"].get<std::string>() << endl ;
+
+
+                    if ( func_alarm.visible_list[j]["tag_id"].get<std::string>() == temp_id )   // refresh visible_list's time
+                    {
+                        if ( temp_id == "0000000000000058")
+                        {
+                            cout << "in_realtime_list check" << endl ;
+                            cout << "time :" << temp_date_time << endl ;
+                        }
+
+                        func_alarm.visible_list[j]["tag_time"] = temp_date_time ;
+                        //                    in_realtime_list = true ;
+                    }
+
+                    // if found the realtime_tag in invisible_list , delete that record.
+                    //                func_alarm.remove_from_invisible_list( temp_id ) ;
+                } // for point_count
+
+                string walk_id      = func_alarm.visible_list[j]["tag_id"].get<std::string>() ;
+                string walk_time    = func_alarm.visible_list[j]["tag_time"].get<std::string>() ;
+
+                string custom_alarm_value = Get_alarm_value_byTag_n_alarm_name( walk_id, "hidden" ) ; // hidden's time offset
+                if ( walk_id == "0000000000000058")
+                    cout << "custom value :" << custom_alarm_value << endl ;
+                if ( custom_alarm_value != "" && is_time_late_now( walk_time, custom_alarm_value ) ) // if visible + offset_time < now , add to invisible
+                {
+                    string event_type   = "" ;
+                    Match_AlarmTime_Cache( walk_id, walk_time, "hidden", event_type ) ; // Determining what event status type( ex. Disable, start , Occurring, offline.... )
+
+                    if ( !func_alarm.search_invisible_list(walk_id) ) // When first time invisible, must to write SQL.
+                        SQL_AddEvent( state, walk_id, "hidden", event_type, walk_time ) ;
+
+                    if ( event_type != "Disable" || event_type  != "" )
+                        func_alarm.invisible_list.push_back( func_alarm.visible_list[j] ) ;
+
+//                    if ( func_alarm.search_invisible_list(walk_id) )
 //                        SQL_AddEvent( state, walk_id, "hidden", event_type, walk_time ) ;
-//
-//                    if ( event_type != "Disable" || event_type  != "" )
-//                        func_alarm.invisible_list.push_back( func_alarm.visible_list[j] ) ;
-//
-////                    if ( func_alarm.search_invisible_list(walk_id) )
-////                        SQL_AddEvent( state, walk_id, "hidden", event_type, walk_time ) ;
-//
-//                    if ( !func_alarm.visible_list[j].empty() ) // remove from visible list
-//                        func_alarm.visible_list.erase(j) ;
-//
-//                } // if is_time_late_now
-//
-//
-//            } // for int j = 0 ;
-//            // TAIL: update invisible & visible List *****************************************/
-//        }
-//        catch( exception &e )
-//        {
-//            cout << "json parse error from invisible." << endl;
-//            cout << e.what() << endl ;
-//            //SQL_Close();
-//        }
+
+                    if ( !func_alarm.visible_list[j].empty() ) // remove from visible list
+                        func_alarm.visible_list.erase(j) ;
+
+                } // if is_time_late_now
+
+
+            } // for int j = 0 ;
+            // TAIL: update invisible & visible List *****************************************/
+        }
+        catch( exception &e )
+        {
+            cout << "json parse error from invisible." << endl;
+            cout << e.what() << endl ;
+            //SQL_Close();
+        }
 
 
 //        j_requestTagList.clear();
@@ -4700,20 +4700,21 @@ void loc_run2()
                 cout << "record count :"<<coordinate_record_count << endl;
 
                 Location_Point_display(Tag_record_info, coordinate_record_count, Tag_Status_record_info, status_record_count);
-                g_loaded_dll = true ;
+//                g_loaded_dll = true ;
 
 
                 // HEAD: create index for locus record *******
                 // check_locus_index();
                 // each hour , get id of the first record in each hour, and use the id to create index.
-                //check_locus_index_hour();
+                check_locus_index_hour();
 
+                cout << "check time" << endl;
                 // each min , get id of the first record in each minute, and use the id to create index.
                 //check_locus_index_hour_min();
 
                 // Because still not determining which method to use, so reserving above ( hour / min ).
                 // TAIL: create index *******
-
+                cout << "check time2" << endl;
 
                 usleep(100000);
 
@@ -4733,7 +4734,7 @@ void loc_run2()
     cout << "before close" << endl ;
 //    cout << "close value :" << dlclose(handle) << endl ;
     cout << "after close" << endl ;
-    g_loaded_dll = false ;
+//    g_loaded_dll = false ;
 
 
 }
@@ -4972,7 +4973,7 @@ int main()
             else
                 cout << "====== Without SQL Mode ======" << endl ;
 
-            if ( !g_loaded_dll )
+//            if ( !g_loaded_dll )
                 loc_run2();
 //            cout << "close :" << dlclose(handle) << endl ;
 //            cout << "dl error :" << dlerror() << endl ;

@@ -2301,7 +2301,9 @@ json json_SQL_GetFence_group( Statement *&state, ResultSet *&result, json func_a
     foo["success"] = 0 ;
     json temp ;
     string target = func_arg["fence_id"].get<std::string>() ;
-    string query = string("") + "select * from fence_group where fence_id = '" + target + "' ;";
+    string query = string("") + "select FG.fence_id, FG.group_id , GI.group_name from (" +
+                                "select * from fence_group where fence_id = '" + target + "'" +
+                                " )FG join group_info GI where GI.group_id = FG.group_id ;" ;
 
     try
     {
@@ -2309,11 +2311,13 @@ json json_SQL_GetFence_group( Statement *&state, ResultSet *&result, json func_a
         while (result->next())
         {
             // group_id, group_name, main_anchor_id, set_x, set_y
-            string fence_id = result->getString("fence_id");
-            string group_id = result->getString("group_id");
+            string fence_id     = result->getString("fence_id");
+            string group_id     = result->getString("group_id");
+            string group_name   = result->getString("group_name");
 
             temp["fence_id"]    = fence_id;
             temp["group_id"]    = group_id;
+            temp["group_name"]    = group_name;
 
             foo["Values"].push_back(temp);
             temp.clear();
